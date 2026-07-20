@@ -118,20 +118,24 @@ export const ValidationStore = {
     if (!run) return undefined;
 
     // Determine overall result
-    const allImproved = run.metrics.every((m) => m.variance.direction === "improved");
-    const allUnchanged = run.metrics.every((m) => m.variance.direction === "unchanged");
-    const allRegressed = run.metrics.every((m) => m.variance.direction === "regressed");
-    const anyRegressed = run.metrics.some((m) => m.variance.direction === "regressed");
-
     let result: OutcomeResult;
-    if (allImproved || allUnchanged) {
-      result = "expected_met";
-    } else if (anyRegressed && !allRegressed) {
-      result = "partial";
-    } else if (allRegressed) {
-      result = "missed";
-    } else {
+    if (run.metrics.length === 0) {
       result = "inconclusive";
+    } else {
+      const allImproved = run.metrics.every((m) => m.variance.direction === "improved");
+      const allUnchanged = run.metrics.every((m) => m.variance.direction === "unchanged");
+      const allRegressed = run.metrics.every((m) => m.variance.direction === "regressed");
+      const anyRegressed = run.metrics.some((m) => m.variance.direction === "regressed");
+
+      if (allImproved || allUnchanged) {
+        result = "expected_met";
+      } else if (anyRegressed && !allRegressed) {
+        result = "partial";
+      } else if (allRegressed) {
+        result = "missed";
+      } else {
+        result = "inconclusive";
+      }
     }
 
     // Update the run
@@ -211,7 +215,7 @@ export const ValidationStore = {
    */
   getTrend(decisionId: string) {
     const outcomes = this.getOutcomesByDecision(decisionId)
-      .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
     return outcomes.map((o) => ({
       date: o.createdAt,
       result: o.result,
@@ -225,7 +229,7 @@ export const ValidationStore = {
    */
   getConfidenceHistory(decisionId: string) {
     const outcomes = this.getOutcomesByDecision(decisionId)
-      .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
     return outcomes.map((o) => ({
       date: o.createdAt,
       confidence: o.confidence.value,

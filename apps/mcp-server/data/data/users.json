@@ -1,0 +1,13 @@
+[
+  {
+    "id": "usr_mrtbm3wd_be25ac99",
+    "email": "e2e@spyral.dev",
+    "username": "e2euser",
+    "displayName": "E2E User",
+    "passwordHash": "fb3c1c12d974abbce4ad0fe07ab4df3d:2608c81bd7687dd4293d55df95c32aeb0911cfbb40c63a53715fb05d01652dec1b32e55bdba5267b4a471464a86f23b94a699c8fab14d0f20321dbd6b58af0f1",
+    "status": "active",
+    "createdAt": "2026-07-20T14:29:19.549Z",
+    "updatedAt": "2026-07-20T14:29:19.549Z",
+    "currentOrgId": "org_mrtbm3xb_d5b12959"
+  }
+]

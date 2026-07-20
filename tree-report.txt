@@ -1,0 +1,245 @@
+|--- [.github]
+|   \--- [workflows]
+|       \--- ci.yml
+|--- [docs]
+|   |--- [adr]
+|   |   |--- 0001-kernel-isolation.md
+|   |   |--- 0002-workspace-engine.md
+|   |   |--- 0003-identity-layer.md
+|   |   |--- 0004-registry-pattern.md
+|   |   |--- 0005-manifest-pattern.md
+|   |   |--- 0006-capability-architecture.md
+|   |   |--- 0007-dependency-rule.md
+|   |   |--- 0008-event-contract.md
+|   |   |--- 0016-decision-context.md
+|   |   |--- 0017-immutable-history.md
+|   |   |--- 0018-statement-classification.md
+|   |   |--- 0019-explainability.md
+|   |   |--- 0020-no-single-best-option.md
+|   |   |--- 0021-decision-execution-separation.md
+|   |   |--- 0022-decision-graph.md
+|   |   |--- 0023-explainability-object.md
+|   |   |--- 0024-execution-is-independent.md
+|   |   |--- 0025-everything-is-traceable.md
+|   |   |--- 0026-execution-produces-evidence.md
+|   |   |--- 0027-no-orphan-objects.md
+|   |   |--- 0028-universal-traceability.md
+|   |   |--- 0029-execution-lifecycle.md
+|   |   |--- 0030-url-stability.md
+|   |   |--- 0031-work-items.md
+|   |   |--- 0032-validation-is-comparison.md
+|   |   |--- 0033-confidence-is-dynamic.md
+|   |   |--- 0034-forecast-accuracy.md
+|   |   |--- 0035-learning-starts-here.md
+|   |   |--- 0036-learning-is-bayesian.md
+|   |   |--- 0037-patterns-are-first-class.md
+|   |   |--- 0038-intelligence-pipeline.md
+|   |   |--- 0039-explainability-is-recursive.md
+|   |   |--- 0040-intelligence-is-read-only.md
+|   |   |--- 0041-platform-memory.md
+|   |   |--- 0042-self-evaluation.md
+|   |   |--- 0043-navigation-context.md
+|   |   |--- 0044-navigation-never-assumes.md
+|   |   |--- 0046-product-layer.md
+|   |   |--- 0047-navigation-is-conversational.md
+|   |   |--- 0048-navigationsession-is-a-product-contract.md
+|   |   |--- 0059-engineering-observability.md
+|   |   \--- 0060-performance-is-product-experience.md
+|   |--- alpha-playbook.md
+|   |--- engineering-health-report.md
+|   |--- performance-budgets.md
+|   |--- principles.md
+|   \--- trust-checklist.md
+|--- [e2e]
+|   \--- canonical-journey.spec.ts
+|--- [playwright-report]
+|   \--- index.html
+|--- [public]
+|   |--- file.svg
+|   |--- globe.svg
+|   |--- next.svg
+|   |--- vercel.svg
+|   \--- window.svg
+|--- [scripts]
+|   |--- cycle-agent.mjs
+|   |--- init-cycle.ps1
+|   |--- send-progress-report.ps1
+|   \--- send-to-copilot.ps1
+|--- [src]
+|   |--- [app]
+|   |   |--- [command]
+|   |   |   |--- error.tsx
+|   |   |   \--- page.tsx
+|   |   |--- [decisions]
+|   |   |   |--- error.tsx
+|   |   |   \--- page.tsx
+|   |   |--- [execution]
+|   |   |   |--- error.tsx
+|   |   |   \--- page.tsx
+|   |   |--- [intelligence]
+|   |   |   |--- error.tsx
+|   |   |   \--- page.tsx
+|   |   |--- [learning]
+|   |   |   |--- error.tsx
+|   |   |   \--- page.tsx
+|   |   |--- [navigate]
+|   |   |   |--- [[id]]
+|   |   |   |   \--- page.tsx
+|   |   |   |--- error.tsx
+|   |   |   \--- page.tsx
+|   |   |--- [settings]
+|   |   |   |--- error.tsx
+|   |   |   \--- page.tsx
+|   |   |--- [validation]
+|   |   |   |--- error.tsx
+|   |   |   \--- page.tsx
+|   |   |--- error.tsx
+|   |   |--- favicon.ico
+|   |   |--- global-error.tsx
+|   |   |--- globals.css
+|   |   |--- layout.tsx
+|   |   \--- page.tsx
+|   |--- [components]
+|   |   |--- [dev]
+|   |   |   \--- DeveloperMode.tsx
+|   |   |--- [layout]
+|   |   |   |--- AppShell.tsx
+|   |   |   |--- BottomNav.tsx
+|   |   |   |--- index.ts
+|   |   |   \--- Sidebar.tsx
+|   |   \--- ErrorFallback.tsx
+|   |--- [features]
+|   |   |--- [capabilities]
+|   |   |   |--- [business]
+|   |   |   |   \--- index.ts
+|   |   |   |--- [loader]
+|   |   |   |   \--- CapabilityLoader.ts
+|   |   |   |--- [registry]
+|   |   |   |   \--- CapabilityRegistry.ts
+|   |   |   |--- icon-map.ts
+|   |   |   \--- index.ts
+|   |   |--- [decisions]
+|   |   |   |--- [components]
+|   |   |   |   |--- DecisionBoard.tsx
+|   |   |   |   \--- DecisionDetail.tsx
+|   |   |   |--- decision.store.ts
+|   |   |   \--- index.ts
+|   |   |--- [execution]
+|   |   |   |--- [components]
+|   |   |   |   |--- ExecutionBoard.tsx
+|   |   |   |   |--- ExecutionDashboard.tsx
+|   |   |   |   |--- ExecutionStudio.tsx
+|   |   |   |   \--- ExecutionTimeline.tsx
+|   |   |   |--- execution.store.ts
+|   |   |   \--- index.ts
+|   |   |--- [learning]
+|   |   |   |--- [components]
+|   |   |   |   |--- InsightsView.tsx
+|   |   |   |   |--- LearningStudio.tsx
+|   |   |   |   |--- PatternsView.tsx
+|   |   |   |   \--- RecommendationsView.tsx
+|   |   |   \--- learning.store.ts
+|   |   |--- [navigation]
+|   |   |   |--- [components]
+|   |   |   |   \--- NavigationStudio.tsx
+|   |   |   |--- navigation.store.test.ts
+|   |   |   \--- navigation.store.ts
+|   |   |--- [reality]
+|   |   |   |--- [components]
+|   |   |   |   \--- RealityCanvas.tsx
+|   |   |   |--- index.ts
+|   |   |   \--- reality.store.ts
+|   |   |--- [validation]
+|   |   |   |--- [components]
+|   |   |   |   |--- ComparisonView.tsx
+|   |   |   |   |--- ConfidenceView.tsx
+|   |   |   |   |--- OutcomeSummary.tsx
+|   |   |   |   |--- TrendView.tsx
+|   |   |   |   \--- ValidationStudio.tsx
+|   |   |   |--- index.ts
+|   |   |   |--- validation.store.test.ts
+|   |   |   \--- validation.store.ts
+|   |   \--- [workspace]
+|   |       |--- [components]
+|   |       |   |--- WorkspaceCard.tsx
+|   |       |   |--- WorkspaceDashboard.tsx
+|   |       |   |--- WorkspaceSwitcher.tsx
+|   |       |   \--- WorkspaceWizard.tsx
+|   |       |--- index.ts
+|   |       |--- workspace.store.ts
+|   |       \--- WorkspaceRegistry.ts
+|   |--- [kernel]
+|   |   \--- [contracts]
+|   |       |--- [identity]
+|   |       |   |--- Aggregate.ts
+|   |       |   |--- Entity.ts
+|   |       |   \--- ValueObject.ts
+|   |       |--- Capability.ts
+|   |       |--- CapabilityManifest.ts
+|   |       |--- CapabilityState.ts
+|   |       |--- ConfidenceScore.ts
+|   |       |--- Decision.ts
+|   |       |--- DecisionContext.ts
+|   |       |--- DecisionOption.ts
+|   |       |--- DecisionOutcome.ts
+|   |       |--- DecisionRelationship.ts
+|   |       |--- DecisionScore.ts
+|   |       |--- DecisionTradeoff.ts
+|   |       |--- EngineHealth.ts
+|   |       |--- Evidence.ts
+|   |       |--- ExecutionPlan.ts
+|   |       |--- ExecutionReport.ts
+|   |       |--- ExecutionStatus.ts
+|   |       |--- Explainability.ts
+|   |       |--- Gateway.ts
+|   |       |--- Insight.ts
+|   |       |--- KernelEvent.ts
+|   |       |--- LearningRecord.ts
+|   |       |--- Metric.ts
+|   |       |--- Milestone.ts
+|   |       |--- NavigationContext.ts
+|   |       |--- NavigationSession.ts
+|   |       |--- NavigationStage.ts
+|   |       |--- Outcome.ts
+|   |       |--- Pattern.ts
+|   |       |--- Reality.ts
+|   |       |--- RealityGap.ts
+|   |       |--- RealityGoal.ts
+|   |       |--- RealityMetric.ts
+|   |       |--- RealitySnapshot.ts
+|   |       |--- Recommendation.ts
+|   |       |--- StatementType.ts
+|   |       |--- Task.ts
+|   |       |--- TraceReference.ts
+|   |       |--- ValidationMetric.ts
+|   |       |--- ValidationRun.ts
+|   |       |--- Variance.ts
+|   |       |--- WorkItem.ts
+|   |       \--- Workspace.ts
+|   |--- [lib]
+|   |   |--- logger.ts
+|   |   |--- performance.ts
+|   |   \--- utils.ts
+|   |--- [sdk]
+|   |--- [test]
+|   |   \--- setup.ts
+|   \--- [workspaces]
+|--- [test-results]
+|   \--- .last-run.json
+|--- .gitignore
+|--- AGENTS.md
+|--- CLAUDE.md
+|--- eslint.config.mjs
+|--- get-tree.js
+|--- get-tree.ps1
+|--- next-env.d.ts
+|--- next.config.ts
+|--- package-lock.json
+|--- package.json
+|--- playwright.config.ts
+|--- postcss.config.mjs
+|--- README.md
+|--- tree-report.txt
+|--- tsconfig.json
+|--- tsconfig.tsbuildinfo
+\--- vitest.config.ts

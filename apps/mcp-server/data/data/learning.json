@@ -1,0 +1,16 @@
+[
+  {
+    "id": "learn_mrtbz4yt_0001",
+    "workspaceId": "ws_mrtbz4yd_0001",
+    "decisionId": "dec_mrtbz4yr_0001",
+    "outcomeIds": [],
+    "patternIds": [],
+    "type": "insight",
+    "content": "Decision created: E2E Test Decision",
+    "confidence": 85,
+    "confidenceDelta": 0,
+    "description": "Market research shows 73% demand for AI-powered solutions in enterprise segment",
+    "createdAt": "2026-07-20T14:39:27.461Z",
+    "updatedAt": "2026-07-20T14:39:27.461Z"
+  }
+]

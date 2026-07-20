@@ -1,0 +1,23 @@
+[
+  {
+    "id": "ws_mrtbz4yd_0001",
+    "ownerId": "",
+    "orgId": "",
+    "name": "C.0 E2E Test Workspace",
+    "type": "business",
+    "description": "Testing the Application Service Layer",
+    "goal": "Validate Phase C.0 end-to-end workflow",
+    "status": "active",
+    "dna": {
+      "industry": "general",
+      "mission": "Validate Phase C.0 end-to-end workflow",
+      "planningHorizon": "medium",
+      "riskAppetite": "moderate",
+      "growthStyle": "balanced",
+      "successMetric": "revenue_growth"
+    },
+    "tags": [],
+    "createdAt": "2026-07-20T14:39:27.445Z",
+    "updatedAt": "2026-07-20T14:39:27.445Z"
+  }
+]

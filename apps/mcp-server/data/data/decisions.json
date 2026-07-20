@@ -1,0 +1,51 @@
+[
+  {
+    "id": "dec_mrtbz4yr_0001",
+    "workspaceId": "ws_mrtbz4yd_0001",
+    "ownerId": "",
+    "orgId": "",
+    "title": "E2E Test Decision",
+    "intent": "Should we launch a new enterprise product line targeting Fortune 500 companies?",
+    "context": "Market research shows 73% demand for AI-powered solutions in enterprise segment",
+    "options": [
+      {
+        "id": "opt_0002",
+        "title": "Proceed with launch",
+        "description": "Move forward with the initiative as planned, committing resources and timeline.",
+        "expectedBenefit": "First-mover advantage, market opportunity capture, momentum building",
+        "expectedCost": "Full resource commitment, higher burn rate",
+        "expectedRisk": "Market readiness uncertainty, execution risk",
+        "requiredEffort": "High — immediate full allocation",
+        "confidence": 72
+      },
+      {
+        "id": "opt_0003",
+        "title": "Deliberate further",
+        "description": "Gather more data, run experiments, and validate assumptions before committing.",
+        "expectedBenefit": "Reduced risk, better-informed decision, stakeholder alignment",
+        "expectedCost": "Delayed value realization, continued analysis cost",
+        "expectedRisk": "May miss timing window, analysis paralysis",
+        "requiredEffort": "Medium — focused research and validation",
+        "confidence": 85
+      },
+      {
+        "id": "opt_0004",
+        "title": "Maintain current course",
+        "description": "Continue existing operations without changes. Revisit at the next review cycle.",
+        "expectedBenefit": "No disruption, preserved resources, trend observation time",
+        "expectedCost": "Opportunity cost of inaction",
+        "expectedRisk": "Competitive erosion, stagnation",
+        "requiredEffort": "Minimal — continue current operations",
+        "confidence": 50
+      }
+    ],
+    "status": "analyzed",
+    "confidence": 85,
+    "tags": [
+      "e2e-test",
+      "enterprise"
+    ],
+    "createdAt": "2026-07-20T14:39:27.459Z",
+    "updatedAt": "2026-07-20T14:39:27.459Z"
+  }
+]

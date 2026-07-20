@@ -1,0 +1,14 @@
+[
+  {
+    "id": "org_mrtbm3xb_d5b12959",
+    "name": "E2EOrg",
+    "slug": "e2eorg",
+    "ownerId": "usr_mrtbm3wd_be25ac99",
+    "settings": {
+      "allowExternalMembers": false,
+      "maxWorkspaces": 10
+    },
+    "createdAt": "2026-07-20T14:29:19.549Z",
+    "updatedAt": "2026-07-20T14:29:19.549Z"
+  }
+]
