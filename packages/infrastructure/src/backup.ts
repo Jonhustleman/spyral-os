@@ -120,7 +120,7 @@ async function backupSqlite(
 ): Promise<BackupResult> {
   // Use better-sqlite3 backup API for consistent backups
   // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const Database = require("better-sqlite3") as typeof import("better-sqlite3").default;
+  const Database = require("better-sqlite3") as typeof import("better-sqlite3");
   const src = new Database(dbPath, { readonly: true });
 
   const backupFilename = `spyral-backup-${timestamp}.db`;

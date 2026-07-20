@@ -4,6 +4,7 @@
  */
 
 import { InfrastructureFactory } from "../packages/infrastructure/src/factory.js";
+import type { Permission } from "../packages/kernel/src/index.js";
 import { unlinkSync, existsSync } from "node:fs";
 
 async function main() {
@@ -31,7 +32,7 @@ async function main() {
       userId: "test",
       organizationId: "org-1",
       role: "admin" as const,
-      permissions: [] as string[],
+      permissions: [] as Permission[],
       requestId: "r1",
       sessionId: "s1",
       issuedAt: new Date().toISOString(),
