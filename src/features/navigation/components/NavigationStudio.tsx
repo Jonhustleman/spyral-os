@@ -14,12 +14,14 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Compass, ArrowRight, Clock, Plus, Trash2 } from "lucide-react";
+import { Compass, ArrowRight, Clock, Plus, Trash2, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NavigationStore } from "../navigation.store";
 import { NavigationStage } from "@/kernel/contracts/NavigationStage";
 import type { NavigationSession } from "@/kernel/contracts/NavigationSession";
 import { WorkspaceStore } from "@/features/workspace";
+import { RealityStore } from "@/features/reality";
+import type { ReportData } from "@/features/reality";
 
 // ─── Props ──────────────────────────────────────────────────────────────
 
@@ -107,7 +109,7 @@ export function NavigationStudio({ workspaceId = "default" }: NavigationStudioPr
         setCurrentQuestion(null);
         const s = NavigationStore.getById(activeSessionId);
         if (s) {
-          WorkspaceStore.create({
+          const ws = WorkspaceStore.create({
             name: s.prompt.length > 50 ? s.prompt.slice(0, 50) + "…" : s.prompt,
             type: "strategic",
             description: s.prompt,
@@ -121,6 +123,203 @@ export function NavigationStudio({ workspaceId = "default" }: NavigationStudioPr
               successMetric: s.context.successMetric || "",
             },
           });
+
+          // Generate and store Reality Report
+          if (ws) {
+            const domain = s.prompt.toLowerCase().includes("business") || s.prompt.toLowerCase().includes("revenue") || s.prompt.toLowerCase().includes("growth") ? "business"
+              : s.prompt.toLowerCase().includes("market") || s.prompt.toLowerCase().includes("brand") || s.prompt.toLowerCase().includes("audience") ? "marketing"
+              : s.prompt.toLowerCase().includes("content") || s.prompt.toLowerCase().includes("write") || s.prompt.toLowerCase().includes("social") ? "content"
+              : s.prompt.toLowerCase().includes("finance") || s.prompt.toLowerCase().includes("investment") || s.prompt.toLowerCase().includes("budget") ? "finance"
+              : s.prompt.toLowerCase().includes("research") || s.prompt.toLowerCase().includes("study") ? "research"
+              : s.prompt.toLowerCase().includes("career") || s.prompt.toLowerCase().includes("job") ? "career"
+              : s.prompt.toLowerCase().includes("health") || s.prompt.toLowerCase().includes("clinic") || s.prompt.toLowerCase().includes("medical") ? "healthcare"
+              : "strategic";
+
+            const report: ReportData = {
+              goal: s.prompt,
+              workspaceName: ws.name,
+              cycleId: `SPYRAL-${String(Date.now()).slice(-6)}`,
+
+              // 1. Current Reality
+              situation: `Pursuing "${s.prompt}" in the ${domain} domain. Initial assessment based on stated intention.`,
+              knownFactors: [
+                `Clear goal defined: "${s.prompt.substring(0, 50)}"`,
+                `${domain} context identified`,
+                ...(s.context.targetDate ? [`Target timeline: ${s.context.targetDate}`] : []),
+                "Multiple strategic approaches may be viable",
+              ],
+              constraints: [
+                `Resources must be allocated efficiently for ${domain}`,
+                "Timeline and budget constraints apply",
+                "External market factors may influence outcomes",
+              ],
+              missingInfo: [
+                "Current baseline metrics not yet measured",
+                "Specific resource availability not confirmed",
+                "Stakeholder alignment needs verification",
+              ],
+              keyAssumptions: [
+                `Resources are available to pursue this ${domain} goal`,
+                "Key stakeholders are aligned with the objective",
+                "The chosen approach can be adapted based on feedback",
+              ],
+
+              // 2. Desired Reality
+              targetOutcome: s.prompt,
+              successCriteria: [
+                "Goal clearly defined and measurable",
+                "Progress tracked against milestones",
+                "Feedback loop established for continuous improvement",
+              ],
+              timeline: s.context.targetDate || "90-day initial cycle with weekly reviews",
+
+              // 3. Gap Analysis
+              gapCurrentState: domain,
+              gapDesiredState: s.prompt,
+              gapDescription: `Moving from current "${domain}" state toward: "${s.prompt.substring(0, 80)}"`,
+              mainObstacles: [
+                `Limited visibility into current ${domain} baseline metrics`,
+                "Resources must be allocated and prioritized",
+                "Unknown factors that may emerge during execution",
+              ],
+              leveragePoints: [
+                "Clear goal definition enables focused execution",
+                "Multiple strategy options increase probability of success",
+                "Structured milestones provide early validation opportunities",
+              ],
+
+              // 4. Hidden Structure
+              keyVariables: [
+                `Pattern: ${domain} initiatives show strongest results when aligned with core competencies`,
+                "Pattern: Success correlates with clear metric definition and regular measurement",
+                "Pattern: Iterative approaches outperform big-bang implementations",
+              ],
+              patternsDetected: [
+                `The ${domain} landscape reveals interconnected factors that influence outcomes`,
+                "Underlying dynamics create both opportunities and constraints",
+                "Stakeholder alignment is a critical success factor often overlooked",
+              ],
+              bottlenecks: [
+                "Goal scope may shift during execution",
+                "Resource constraints may impact timeline",
+                "Key assumptions may prove invalid",
+              ],
+
+              // 5. Strategies (3 auto-generated)
+              strategies: [
+                {
+                  name: `Structured ${domain.charAt(0).toUpperCase() + domain.slice(1)} Approach`,
+                  explanation: `A systematic methodology for achieving "${s.prompt.substring(0, 60)}" through phased execution with clear metrics at each stage.`,
+                  whyItMayWork: "Clear, measurable progress at each milestone; Reduced risk through iterative validation; Builds organizational learning capacity",
+                  steps: [
+                    "Define baseline metrics and success criteria",
+                    "Establish measurement infrastructure",
+                    "Launch core initiatives with 2-week feedback cycles",
+                    "Review progress, adapt based on data, scale what works",
+                    "Document learnings and update strategy",
+                  ],
+                  resourcesRequired: ["Time for planning and execution", "Measurement tools", "Team/stakeholder alignment"],
+                  timeline: "4 milestone phases across 16 weeks",
+                  expectedOutcome: "Achieve goal through structured, measurable execution with continuous adaptation",
+                  risks: ["Requires upfront planning investment", "May be slower for urgent objectives"],
+                  confidenceScore: "85%",
+                  measurementMethod: "Track progress against milestone success criteria with weekly reviews",
+                },
+                {
+                  name: `Agile ${domain.charAt(0).toUpperCase() + domain.slice(1)} Sprint`,
+                  explanation: `A fast-paced, iterative approach to "${s.prompt.substring(0, 60)}" with rapid experimentation and adaptation cycles.`,
+                  whyItMayWork: "Quick initial results and momentum; High adaptability to changing conditions; Early validation of key assumptions",
+                  steps: [
+                    "Identify highest-impact initiative to start",
+                    "Launch 2-week sprint with clear success criteria",
+                    "Review results and adapt approach for next sprint",
+                    "Scale successful patterns, discard what doesn't work",
+                  ],
+                  resourcesRequired: ["Execution focus", "Quick decision-making", "Minimal initial investment"],
+                  timeline: "2-week sprint cycles with monthly reviews",
+                  expectedOutcome: "Rapid progress with continuous adaptation based on real-world feedback",
+                  risks: ["May lack comprehensive strategic coherence", "Requires strong execution discipline"],
+                  confidenceScore: "72%",
+                  measurementMethod: "Sprint-level success criteria with bi-weekly progress reviews",
+                },
+                {
+                  name: `${domain.charAt(0).toUpperCase() + domain.slice(1)} Transformation Program`,
+                  explanation: `A comprehensive initiative targeting "${s.prompt.substring(0, 60)}" with full resource commitment and organizational alignment.`,
+                  whyItMayWork: "Maximum strategic impact potential; Full resource commitment and focus; Creates lasting structural change",
+                  steps: [
+                    "Secure full resource commitment and organizational buy-in",
+                    "Develop comprehensive execution roadmap",
+                    "Launch multi-track initiatives with coordinated execution",
+                    "Establish governance and reporting structure",
+                    "Regular strategic reviews and course corrections",
+                  ],
+                  resourcesRequired: ["Significant investment", "Full organizational commitment", "Dedicated execution team"],
+                  timeline: "Multi-phase program across 6+ months",
+                  expectedOutcome: "Transformative results with lasting structural change in the domain",
+                  risks: ["Highest resource and investment requirement", "Longer timeline to see results", "Higher complexity and coordination needs"],
+                  confidenceScore: "63%",
+                  measurementMethod: "Program-level KPIs with monthly strategic reviews and quarterly assessments",
+                },
+              ],
+
+              // 6. Recommendation
+              selectedStrategy: `Structured ${domain.charAt(0).toUpperCase() + domain.slice(1)} Approach`,
+              reasonSelected: `This approach balances strategic clarity with execution flexibility. It provides clear milestones for measuring progress while allowing adaptation based on real-world feedback. The phased structure reduces risk while building momentum toward the desired reality.`,
+              evidence: [
+                "Clear, specific goal definition improves execution success",
+                "Multiple strategy options generated and evaluated",
+                "Structured milestone plan with success criteria defined",
+                "Risk mitigation strategies identified for each phase",
+              ],
+              uncertainty: [
+                "Perfect information is not available before starting — real-world feedback will refine the approach",
+                "External factors beyond control may influence outcomes",
+                "Initial assumptions need validation through early execution",
+              ],
+
+              // 7. Execution Plan
+              first72h: [
+                "Define specific, measurable success criteria for your goal",
+                "Identify key stakeholders and establish communication channels",
+                "Set up measurement and tracking infrastructure",
+              ],
+              first30d: [
+                {
+                  milestone: "Foundation & Assessment",
+                  action: `Establish baseline metrics, assess current ${domain} capabilities, and define success criteria`,
+                  criteria: "Baseline measured, team aligned, success criteria defined",
+                },
+              ],
+              first90d: [
+                {
+                  milestone: "Initial Implementation",
+                  action: "Launch core initiatives aligned with strategy. Begin measurement and feedback collection.",
+                  criteria: "Core initiatives operational, first metrics collected",
+                },
+                {
+                  milestone: "Optimization & Scaling",
+                  action: "Analyze early results, optimize approaches, and scale successful initiatives.",
+                  criteria: "Key metrics showing improvement, successful patterns identified and scaled",
+                },
+              ],
+
+              // 8. Validation Loop
+              prediction: `Following the recommended strategy will achieve the desired outcome within the defined timeline, with course corrections based on measurement data.`,
+              measurement: `Track progress against milestone success criteria. Key metrics: goal clarity, execution velocity, stakeholder alignment, outcome achievement. Review cadence: weekly tactical + monthly strategic.`,
+              adaptation: `If metrics deviate from expected trajectory, adjust approach based on data. Use feedback loops to identify what's working and what needs to change. Scale successful patterns, pivot away from ineffective ones.`,
+
+              // Confidence
+              confidenceScore: 45,
+              confidenceReason: "Conservative base confidence (45%) per SPYRAL estimation policy. Specific goal definition and multiple strategy options add moderate confidence. Real-world execution data will increase confidence over time.",
+              unknownFactors: [
+                "Goal is in early stage — specificity increases confidence as execution progresses",
+                "Market or audience context not fully validated",
+                "Resource constraints not yet confirmed",
+              ],
+            };
+
+            RealityStore.saveReport(ws.id, report as unknown as Record<string, unknown>);
+          }
         }
         router.push("/");
         return;

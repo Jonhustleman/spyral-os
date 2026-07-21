@@ -289,6 +289,46 @@ class RealityStoreImpl {
     this.saveSnapshot(snapshot);
     return true;
   }
+
+  // ── Report Data (frontend Reality Report) ─────────────────────────────
+
+  private reportKey(workspaceId: string): string {
+    return `${STORAGE_PREFIX}report_${workspaceId}`;
+  }
+
+  /** Save a reality report for a workspace. */
+  saveReport(workspaceId: string, reportData: Record<string, unknown>): void {
+    try {
+      localStorage.setItem(this.reportKey(workspaceId), JSON.stringify(reportData));
+      this.notify();
+    } catch (e) {
+      console.error("Failed to persist reality report:", e);
+    }
+  }
+
+  /** Get the reality report for a workspace, or null. */
+  getReport(workspaceId: string): Record<string, unknown> | null {
+    try {
+      const raw = localStorage.getItem(this.reportKey(workspaceId));
+      if (!raw) return null;
+      return JSON.parse(raw) as Record<string, unknown>;
+    } catch {
+      return null;
+    }
+  }
+
+  /** Check if a workspace has a completed report. */
+  hasReport(workspaceId: string): boolean {
+    return this.getReport(workspaceId) !== null;
+  }
+
+  /** Delete the report for a workspace. */
+  deleteReport(workspaceId: string): void {
+    try {
+      localStorage.removeItem(this.reportKey(workspaceId));
+      this.notify();
+    } catch { /* ignore */ }
+  }
 }
 
 /** Singleton store instance. */
