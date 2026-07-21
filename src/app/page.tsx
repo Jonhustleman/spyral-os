@@ -13,12 +13,12 @@ import type { Workspace } from "@/kernel/contracts/Workspace";
 // ─── Use cases ─────────────────────────────────────────────────────────────
 
 const useCases = [
-  { label: "Build a business", href: "/navigate?prompt=Build a business", icon: Target },
-  { label: "Grow an audience", href: "/navigate?prompt=Grow an audience", icon: Brain },
-  { label: "Create content", href: "/navigate?prompt=Create a content strategy", icon: Sparkles },
-  { label: "Make decisions", href: "/navigate?prompt=Make a strategic decision", icon: Eye },
-  { label: "Research opportunities", href: "/navigate?prompt=Research market opportunities", icon: CheckCircle },
-  { label: "Achieve personal goals", href: "/navigate?prompt=Achieve personal goals", icon: RefreshCw },
+  { label: "Build a business", href: "/navigate?prompt=" + encodeURIComponent("Build a business"), icon: Target },
+  { label: "Grow an audience", href: "/navigate?prompt=" + encodeURIComponent("Grow an audience"), icon: Brain },
+  { label: "Create content", href: "/navigate?prompt=" + encodeURIComponent("Create a content strategy"), icon: Sparkles },
+  { label: "Make decisions", href: "/navigate?prompt=" + encodeURIComponent("Make a strategic decision"), icon: Eye },
+  { label: "Research opportunities", href: "/navigate?prompt=" + encodeURIComponent("Research market opportunities"), icon: CheckCircle },
+  { label: "Achieve personal goals", href: "/navigate?prompt=" + encodeURIComponent("Achieve personal goals"), icon: RefreshCw },
 ];
 
 // ─── SPYRAL cycle steps ────────────────────────────────────────────────────
