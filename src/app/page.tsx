@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowRight, Sparkles, Layers } from "lucide-react";
@@ -10,25 +10,35 @@ import { RealityCanvas } from "@/features/reality";
 import type { Workspace } from "@/kernel/contracts/Workspace";
 
 const quickActions = [
-  { label: "Business", href: "#" },
-  { label: "Marketing", href: "#" },
-  { label: "Content", href: "#" },
-  { label: "Finance", href: "#" },
-  { label: "Research", href: "#" },
-  { label: "Career", href: "#" },
+  { label: "Business", href: "/navigate?prompt=Business" },
+  { label: "Marketing", href: "/navigate?prompt=Marketing" },
+  { label: "Content", href: "/navigate?prompt=Content" },
+  { label: "Finance", href: "/navigate?prompt=Finance" },
+  { label: "Research", href: "/navigate?prompt=Research" },
+  { label: "Career", href: "/navigate?prompt=Career" },
 ];
 
 export default function RealityPage() {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(null);
 
-  useEffect(() => {
+  const refresh = useCallback(() => {
     const active = WorkspaceStore.getActive();
     setWorkspaces(active);
-    if (active.length > 0 && !selectedWorkspaceId) {
-      setSelectedWorkspaceId(active[0].id);
+  }, []);
+
+  useEffect(() => {
+    refresh();
+    const unsub = WorkspaceStore.subscribe(refresh);
+    return unsub;
+  }, [refresh]);
+
+  // Auto-select first workspace when none selected
+  useEffect(() => {
+    if (workspaces.length > 0 && !selectedWorkspaceId) {
+      setSelectedWorkspaceId(workspaces[0].id);
     }
-  }, [selectedWorkspaceId]);
+  }, [workspaces, selectedWorkspaceId]);
 
   // If a workspace is selected, show the Reality Canvas
   if (selectedWorkspaceId) {

@@ -13,12 +13,13 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Compass, ArrowRight, Clock, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NavigationStore } from "../navigation.store";
 import { NavigationStage } from "@/kernel/contracts/NavigationStage";
 import type { NavigationSession } from "@/kernel/contracts/NavigationSession";
+import { WorkspaceStore } from "@/features/workspace";
 
 // ─── Props ──────────────────────────────────────────────────────────────
 
@@ -30,7 +31,8 @@ interface NavigationStudioProps {
 
 export function NavigationStudio({ workspaceId = "default" }: NavigationStudioProps) {
   const router = useRouter();
-  const [prompt, setPrompt] = useState("");
+  const searchParams = useSearchParams();
+  const [prompt, setPrompt] = useState(searchParams.get("prompt") ?? "");
   const [activeSessions, setActiveSessions] = useState<NavigationSession[]>([]);
   const [recentDestinations, setRecentDestinations] = useState<NavigationSession[]>([]);
   const [isNavigating, setIsNavigating] = useState(false);
@@ -80,30 +82,19 @@ export function NavigationStudio({ workspaceId = "default" }: NavigationStudioPr
     const stage = session.stage;
     let contextUpdate: Record<string, any> = {};
 
-    if (stage === NavigationStage.CLARIFICATION) {
+    if (stage === NavigationStage.INTENT || stage === NavigationStage.CLARIFICATION) {
+      // CLARIFICATION: just collect the target date, then proceed to REALITY/GAP
       if (!session.context.targetDate) {
         contextUpdate.targetDate = answer;
-      } else if (!session.context.currentRealityKnown) {
-        contextUpdate.currentRealityKnown = true;
-      } else if (!session.context.goalDefined) {
-        contextUpdate.goalDefined = true;
-      } else if (session.context.constraints.length === 0) {
-        contextUpdate.constraints = [answer];
-      } else if (!session.context.successMetric) {
-        contextUpdate.successMetric = answer;
       }
     }
 
     NavigationStore.updateContext(activeSessionId, contextUpdate);
 
-    // Get updated session
-    const updated = NavigationStore.getById(activeSessionId);
-    if (!updated) return;
-
-    // Check if we can proceed
-    if (NavigationStore.canProceed(updated)) {
-      // Transition to next stage
-      const nextStage = NavigationStore.next(updated);
+    // Transition through stages until we reach one that needs user input or has a route
+    let current = NavigationStore.getById(activeSessionId)!;
+    while (NavigationStore.canProceed(current)) {
+      const nextStage = NavigationStore.next(current);
       NavigationStore.updateStage(activeSessionId, nextStage);
       NavigationStore.addTurn(activeSessionId, {
         role: "system",
@@ -111,9 +102,26 @@ export function NavigationStudio({ workspaceId = "default" }: NavigationStudioPr
         timestamp: new Date(),
       });
 
-      // Determine destination based on stage
+      // Handle routing for dedicated stage pages
       if (nextStage === NavigationStage.REALITY) {
         setCurrentQuestion(null);
+        const s = NavigationStore.getById(activeSessionId);
+        if (s) {
+          WorkspaceStore.create({
+            name: s.prompt.length > 50 ? s.prompt.slice(0, 50) + "…" : s.prompt,
+            type: "strategic",
+            description: s.prompt,
+            goal: s.prompt,
+            dna: {
+              industry: "",
+              mission: s.prompt,
+              planningHorizon: "medium",
+              riskAppetite: "moderate",
+              growthStyle: "balanced",
+              successMetric: s.context.successMetric || "",
+            },
+          });
+        }
         router.push("/");
         return;
       } else if (nextStage === NavigationStage.DECISION) {
@@ -131,11 +139,14 @@ export function NavigationStudio({ workspaceId = "default" }: NavigationStudioPr
         setIsNavigating(false);
         return;
       }
-    } else {
-      // Still needs more info
-      const q = NavigationStore.nextQuestion(updated);
-      setCurrentQuestion(q);
+
+      // Refresh current session and continue loop
+      current = NavigationStore.getById(activeSessionId)!;
     }
+
+    // Now the current stage needs user input — ask the next question
+    const q = NavigationStore.nextQuestion(current);
+    setCurrentQuestion(q);
   };
 
   const handleContinueJourney = (sessionId: string) => {

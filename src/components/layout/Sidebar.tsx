@@ -17,7 +17,7 @@ export function Sidebar() {
 
   useEffect(() => {
     setCapabilities(CapabilityRegistry.getEnabled());
-  }, []);
+  }, [pathname]);
 
   return (
     <>

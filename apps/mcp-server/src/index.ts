@@ -34,6 +34,10 @@ import type { TenantContext } from "@spyral/kernel";
 import type { Request, Response } from "express";
 
 import { statusToolDefinition, handleGetStatus, GetStatusInputSchema } from "./tools/status.js";
+import { beginRealityCycleToolDefinition, handleBeginRealityCycle, BeginRealityCycleInputSchema } from "./tools/reality-cycle.js";
+import { submitRealityFeedbackToolDefinition, handleSubmitRealityFeedback, SubmitFeedbackInputSchema } from "./tools/reality-cycle-feedback.js";
+import { createPredictionToolDefinition, handleCreatePrediction, CreatePredictionInputSchema, resolvePredictionToolDefinition, handleResolvePrediction, ResolvePredictionInputSchema } from "./tools/prediction.js";
+import { getTestScenarioToolDefinition, handleGetTestScenario, GetTestScenarioInputSchema } from "./tools/test-scenarios.js";
 import { createDecisionToolDefinition, handleCreateDecision, CreateDecisionInputSchema } from "./tools/decision.js";
 import { createWorkspaceToolDefinition, handleCreateWorkspace, CreateWorkspaceInputSchema, getWorkspaceToolDefinition, handleGetWorkspace, GetWorkspaceInputSchema } from "./tools/workspace.js";
 import { getDecisionToolDefinition, handleGetDecision, GetDecisionInputSchema, listDecisionsToolDefinition, handleListDecisions, ListDecisionsInputSchema } from "./tools/query.js";
@@ -110,6 +114,11 @@ const caps = getCapabilities(infra);
 server.setRequestHandler(ListToolsRequestSchema, async () => ({
   tools: [
     statusToolDefinition,
+    beginRealityCycleToolDefinition,
+    submitRealityFeedbackToolDefinition,
+    createPredictionToolDefinition,
+    resolvePredictionToolDefinition,
+    getTestScenarioToolDefinition,
     createDecisionToolDefinition,
     getDecisionToolDefinition,
     listDecisionsToolDefinition,
@@ -129,6 +138,31 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     case "spyral_get_status": {
       const input = GetStatusInputSchema.parse(args);
       return handleGetStatus(input);
+    }
+
+    case "spyral_begin_reality_cycle": {
+      const input = BeginRealityCycleInputSchema.parse(args);
+      return handleBeginRealityCycle(input);
+    }
+
+    case "spyral_submit_reality_feedback": {
+      const input = SubmitFeedbackInputSchema.parse(args);
+      return handleSubmitRealityFeedback(input);
+    }
+
+    case "spyral_create_prediction": {
+      const input = CreatePredictionInputSchema.parse(args);
+      return handleCreatePrediction(input);
+    }
+
+    case "spyral_resolve_prediction": {
+      const input = ResolvePredictionInputSchema.parse(args);
+      return handleResolvePrediction(input);
+    }
+
+    case "spyral_get_test_scenario": {
+      const input = GetTestScenarioInputSchema.parse(args);
+      return handleGetTestScenario(input);
     }
 
     case "spyral_create_decision": {

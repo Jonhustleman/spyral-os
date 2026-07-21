@@ -80,14 +80,6 @@ export function RealityCanvas({ workspaceId }: RealityCanvasProps) {
     return unsub;
   }, [refresh]);
 
-  if (!snapshot) {
-    return (
-      <div className="flex items-center justify-center py-16">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-700 border-t-white" />
-      </div>
-    );
-  }
-
   // ── Metric form ────────────────────────────────────────────────────────
 
   const [newMetric, setNewMetric] = useState({
@@ -136,7 +128,7 @@ export function RealityCanvas({ workspaceId }: RealityCanvasProps) {
       title: newGoal.title,
       description: newGoal.description,
       targetMetrics: [target],
-      isPrimary: snapshot.goals.length === 0,
+      isPrimary: snapshot !== null && snapshot.goals.length === 0,
     });
     setNewGoal({ title: "", description: "", targetName: "", targetValue: "", targetUnit: "" });
   };
@@ -146,6 +138,14 @@ export function RealityCanvas({ workspaceId }: RealityCanvasProps) {
   const handleCalculateGaps = () => {
     RealityStore.calculateGaps(workspaceId);
   };
+
+  if (!snapshot) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-700 border-t-white" />
+      </div>
+    );
+  }
 
   // ── Tabs ───────────────────────────────────────────────────────────────
 

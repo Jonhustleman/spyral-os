@@ -120,8 +120,8 @@ function canProceedFromStage(stage: NavigationStage, context: NavigationContext)
       return context.intent.length > 0;
 
     case NavigationStage.CLARIFICATION:
-      // Need at least destination and some context
-      return context.intent.length > 0;
+      // Need at least destination, timeline, and constraints
+      return context.intent.length > 0 && !!context.targetDate;
 
     case NavigationStage.REALITY:
       return context.currentRealityKnown;
@@ -158,10 +158,6 @@ function missingInformation(session: NavigationSession): string | null {
     case NavigationStage.CLARIFICATION:
       if (!ctx.intent) return "What do you want to achieve?";
       if (!ctx.targetDate) return "What's your target date for achieving this?";
-      if (!ctx.currentRealityKnown) return "To understand the gap, what's your current situation?";
-      if (!ctx.goalDefined) return "Can you describe what success looks like?";
-      if (ctx.constraints.length === 0) return "What constraints or limitations should we consider?";
-      if (!ctx.successMetric) return "How will we measure success?";
       return null;
 
     case NavigationStage.REALITY:

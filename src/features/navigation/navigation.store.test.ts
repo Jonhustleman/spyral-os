@@ -260,10 +260,10 @@ describe("NavigationStore — Orchestrator (state machine)", () => {
       expect(NavigationStore.canProceed(session)).toBe(false);
     });
 
-    it("returns true at CLARIFICATION when intent exists", () => {
+    it("returns true at CLARIFICATION when intent and targetDate exist", () => {
       const session = makeSession({
         stage: NavigationStage.CLARIFICATION,
-        context: makeContext({ intent: "Something" }),
+        context: makeContext({ intent: "Something", targetDate: "2026-12-31" }),
       });
       expect(NavigationStore.canProceed(session)).toBe(true);
     });
@@ -362,58 +362,15 @@ describe("NavigationStore — Orchestrator (state machine)", () => {
       expect(NavigationStore.missingInformation(session)).toContain("target date");
     });
 
-    it("asks for current reality when target date set but reality unknown", () => {
+    it("returns null at CLARIFICATION when intent and targetDate are set", () => {
       const session = makeSession({
         stage: NavigationStage.CLARIFICATION,
         context: makeContext({
           intent: "Grow",
           targetDate: "2026-12-31",
-          currentRealityKnown: false,
         }),
       });
-      expect(NavigationStore.missingInformation(session)).toContain("current situation");
-    });
-
-    it("asks for goal when reality known but goal undefined", () => {
-      const session = makeSession({
-        stage: NavigationStage.CLARIFICATION,
-        context: makeContext({
-          intent: "Grow",
-          targetDate: "2026-12-31",
-          currentRealityKnown: true,
-          goalDefined: false,
-        }),
-      });
-      expect(NavigationStore.missingInformation(session)).toContain("success looks like");
-    });
-
-    it("asks for constraints when goal defined but no constraints", () => {
-      const session = makeSession({
-        stage: NavigationStage.CLARIFICATION,
-        context: makeContext({
-          intent: "Grow",
-          targetDate: "2026-12-31",
-          currentRealityKnown: true,
-          goalDefined: true,
-          constraints: [],
-        }),
-      });
-      expect(NavigationStore.missingInformation(session)).toContain("constraints");
-    });
-
-    it("asks for success metric when constraints set but metric missing", () => {
-      const session = makeSession({
-        stage: NavigationStage.CLARIFICATION,
-        context: makeContext({
-          intent: "Grow",
-          targetDate: "2026-12-31",
-          currentRealityKnown: true,
-          goalDefined: true,
-          constraints: ["time"],
-          successMetric: undefined,
-        }),
-      });
-      expect(NavigationStore.missingInformation(session)).toContain("measure success");
+      expect(NavigationStore.missingInformation(session)).toBeNull();
     });
 
     it("returns null when all clarification fields are filled", () => {

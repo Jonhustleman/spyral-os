@@ -24,7 +24,9 @@ export type DomainEventName =
   | "LearningRecorded"
   | "WorkspaceCreated"
   | "WorkspaceUpdated"
-  | "WorkspaceArchived";
+  | "WorkspaceArchived"
+  | "RealityCycleCompleted"
+  | "RealityCycleFeedbackSubmitted";
 
 // ─── Base Event ──────────────────────────────────────────────────────────────
 
@@ -32,7 +34,7 @@ export interface DomainEvent {
   eventName: DomainEventName;
   eventId: string;
   aggregateId: string;
-  aggregateType: "decision" | "execution" | "workspace" | "learning";
+  aggregateType: "decision" | "execution" | "workspace" | "learning" | "reality-cycle";
   timestamp: string;
   payload: Record<string, unknown>;
 }
@@ -105,6 +107,14 @@ export interface WorkspaceCreatedPayload {
 export interface WorkspaceUpdatedPayload {
   workspaceId: string;
   changes: string[];
+}
+
+export interface RealityCycleCompletedPayload {
+  workspaceId: string;
+  decisionId: string;
+  goal: string;
+  confidence: number;
+  stages: string[];
 }
 
 // ─── Event Handler Type ─────────────────────────────────────────────────────

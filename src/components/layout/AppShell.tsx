@@ -1,14 +1,19 @@
 "use client";
 
-import { useEffect } from "react";
+import { useRef } from "react";
 import { Sidebar } from "./Sidebar";
 import { BottomNav } from "./BottomNav";
 import { initBusinessCapabilities } from "@/features/capabilities/business";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  useEffect(() => {
+  // Initialize capabilities synchronously so Sidebar and BottomNav
+  // can read them on first render (useEffect would be too late as
+  // child effects run before parent effects in React's commit phase).
+  const initialized = useRef(false);
+  if (!initialized.current) {
     initBusinessCapabilities();
-  }, []);
+    initialized.current = true;
+  }
 
   return (
     <div className="flex h-full">

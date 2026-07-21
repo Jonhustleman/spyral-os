@@ -172,8 +172,44 @@ export type {
   LearningRecordedPayload,
   WorkspaceCreatedPayload,
   WorkspaceUpdatedPayload,
+  RealityCycleCompletedPayload,
   DomainEventHandler,
 } from "./types/events.js";
+
+// ─── Reality Cycle Types (Phase E.0 — ChatGPT App Pilot) ─────────────────
+
+export type {
+  BeginRealityCycleRequest,
+  BeginRealityCycleResponse,
+  RealityCycleResponse,
+  RealityStage,
+  StageResult,
+  SOPResult,
+  CurrentRealityAssessment,
+  LDEResult,
+  STEResult,
+  Trajectory,
+  StrategyOption,
+  Strategy,
+  Milestone,
+  SVEResult,
+  Risk,
+  SAEResult,
+  LearningPathway,
+  MeasurementPlan,
+  UserRating,
+  RealityCycleFeedback,
+  SubmitFeedbackRequest,
+  Prediction,
+  CreatePredictionRequest,
+  ResolvePredictionRequest,
+  PilotModeState,
+  CycleIdentity,
+  RealityGapAnalysis,
+  CycleQuality,
+  PilotProfile,
+  SubmitFeedbackResponse,
+} from "./types/reality-cycle.js";
 
 // ─── Repository Ports (Hexagonal Architecture) ───────────────────────────────
 

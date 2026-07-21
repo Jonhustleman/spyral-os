@@ -149,6 +149,7 @@ export function WorkspaceWizard({ onClose, onCreated }: WorkspaceWizardProps) {
         dna: form.dna,
       });
       onCreated?.();
+      onClose?.();
       router.push(`/navigate/${workspace.id}`);
     } catch (e) {
       console.error("Failed to create workspace:", e);

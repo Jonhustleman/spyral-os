@@ -14,7 +14,7 @@ export function BottomNav() {
 
   useEffect(() => {
     setCapabilities(CapabilityRegistry.getEnabled());
-  }, []);
+  }, [pathname]);
 
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-[#27272a] bg-[#0a0a0a]/95 backdrop-blur-sm">

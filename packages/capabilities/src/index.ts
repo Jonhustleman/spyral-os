@@ -41,6 +41,8 @@ export { CreateExecutionPlanService } from "./services/create-execution-plan-ser
 export { RecordLearningService } from "./services/record-learning-service.js";
 export { WorkspaceDashboardService } from "./services/workspace-dashboard-service.js";
 export { ValidateDecisionService } from "./services/validate-decision-service.js";
+export { RealityCycleService } from "./services/reality-cycle-service.js";
+export { RealityCycleFeedbackService } from "./services/reality-cycle-feedback-service.js";
 
 // ─── Phase C.1: Validation Engine ─────────────────────────────────────────
 
