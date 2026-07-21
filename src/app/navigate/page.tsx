@@ -11,12 +11,15 @@
 
 "use client";
 
+import { Suspense } from "react";
 import { NavigationStudio } from "@/features/navigation/components/NavigationStudio";
 
 export default function NavigatePage() {
   return (
     <div className="flex-1 w-full">
-      <NavigationStudio />
+      <Suspense fallback={<div className="flex-1 w-full" />}>
+        <NavigationStudio />
+      </Suspense>
     </div>
   );
 }
