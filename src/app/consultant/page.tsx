@@ -3,8 +3,10 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Send, FileText, Activity, Search, Target, AlertTriangle, TrendingUp, Zap, Calendar, ArrowRight, ChevronDown, ChevronUp, Copy, Check, Download, Home, Clock, ClipboardList, Trash2 } from "lucide-react";
+import { Send, FileText, Activity, Search, Target, AlertTriangle, TrendingUp, Zap, Calendar, ArrowRight, ChevronDown, ChevronUp, Copy, Check, Download, Home, Clock, ClipboardList, Trash2, Brain } from "lucide-react";
+import { SpyralCognitiveCore } from "@/core";
 import { cn } from "@/lib/utils";
+import { ThinkingIndicator } from "@/components/ThinkingIndicator";
 
 // ─── Message types ─────────────────────────────────────────────────────────
 
@@ -177,15 +179,17 @@ export default function ConsultantAgentPage() {
     {
       id: "welcome",
       role: "agent",
-      content: "What challenge are we solving today?\n\nI'm your SPYRAL Strategic Advisor. I'll challenge assumptions, identify blind spots, explain tradeoffs, and help you make better decisions.\n\nShare your situation — business, career, product, or personal — and I'll provide an executive-level analysis.",
+      content: "What challenge are we solving today?\n\nI'm your SPYRAL Strategic Advisor. I don't just agree — I challenge assumptions, identify blind spots, explain tradeoffs, and help you make better decisions.\n\nShare your situation and I'll diagnose root causes, build options, and recommend a path forward.",
       timestamp: new Date(),
     },
   ]);
   const [report, setReport] = useState<ConsultantReport | null>(null);
+  const [cognitiveResponse, setCognitiveResponse] = useState<import("@/core").CognitiveResponse | null>(null);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
   const [copiedField, setCopiedField] = useState<string | null>(null);
-  const [savedSessions, setSavedSessions] = useState<{ prompt: string; timestamp: string }[]>([]);
+  const [savedSessions, setSavedSessions] = useState<{ prompt: string; timestamp: string; response?: import("@/core").CognitiveResponse }[]>([]);
   const [showSessions, setShowSessions] = useState(false);
+  const [isThinking, setIsThinking] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const toggleSection = (key: string) => {
@@ -209,8 +213,8 @@ export default function ConsultantAgentPage() {
   }, []);
 
   // Save session after generating a report
-  const saveSession = (prompt: string) => {
-    const session = { prompt, timestamp: new Date().toISOString() };
+  const saveSession = (prompt: string, cognitive?: import("@/core").CognitiveResponse) => {
+    const session = { prompt, timestamp: new Date().toISOString(), response: cognitive };
     const updated = [session, ...savedSessions.filter(s => s.prompt !== prompt)].slice(0, 20);
     setSavedSessions(updated);
     try {
@@ -235,8 +239,8 @@ export default function ConsultantAgentPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const handleSubmit = () => {
-    if (!prompt.trim()) return;
+  const handleSubmit = async () => {
+    if (!prompt.trim() || isThinking) return;
 
     const userMsg: Message = {
       id: `user-${Date.now()}`,
@@ -246,6 +250,14 @@ export default function ConsultantAgentPage() {
     };
 
     setMessages((prev) => [...prev, userMsg]);
+    setIsThinking(true);
+
+    // SPYRAL thinks first — challenges assumptions, diagnoses root causes
+    const cognitive = SpyralCognitiveCore.think({
+      input: prompt,
+      agentType: "consultant",
+    });
+    setCognitiveResponse(cognitive);
 
     const r = generateConsultantReport(prompt);
     setReport(r);
@@ -253,12 +265,13 @@ export default function ConsultantAgentPage() {
     const agentMsg: Message = {
       id: `agent-${Date.now()}`,
       role: "agent",
-      content: `I've analyzed your situation and prepared a comprehensive strategic assessment. Here's my analysis and recommendations.`,
+      content: `${cognitive.response}\n\nBelow is my complete strategic assessment with diagnosis, recommendations, and a 90-day roadmap.`,
       timestamp: new Date(),
     };
 
     setMessages((prev) => [...prev, agentMsg]);
-    saveSession(prompt);
+    saveSession(prompt, cognitive);
+    setIsThinking(false);
     setPrompt("");
   };
 
@@ -565,26 +578,37 @@ export default function ConsultantAgentPage() {
         </div>
       )}
 
-      {/* Input area */}
-      <div className="border-t border-zinc-800 px-6 py-4">
-        <div className="max-w-3xl mx-auto flex gap-3">
-          <textarea
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Tell me about your situation..."
-            className="flex-1 bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-sm text-white placeholder-zinc-600 resize-none focus:outline-none focus:border-zinc-700 transition-colors"
-            rows={1}
-          />
-          <button
-            onClick={handleSubmit}
-            disabled={!prompt.trim()}
-            className="shrink-0 h-10 w-10 rounded-xl bg-white text-black flex items-center justify-center hover:bg-zinc-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-          >
-            <Send className="h-4 w-4" />
-          </button>
+      {/* Thinking indicator */}
+      {isThinking && (
+        <div className="border-t border-zinc-800 px-6 py-3">
+          <div className="max-w-3xl mx-auto">
+            <ThinkingIndicator isThinking={isThinking} />
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Input area */}
+      {!isThinking && (
+        <div className="border-t border-zinc-800 px-6 py-4">
+          <div className="max-w-3xl mx-auto flex gap-3">
+            <textarea
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Tell me about your situation..."
+              className="flex-1 bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-sm text-white placeholder-zinc-600 resize-none focus:outline-none focus:border-zinc-700 transition-colors"
+              rows={1}
+            />
+            <button
+              onClick={handleSubmit}
+              disabled={!prompt.trim() || isThinking}
+              className="shrink-0 h-10 w-10 rounded-xl bg-white text-black flex items-center justify-center hover:bg-zinc-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+            >
+              <Send className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

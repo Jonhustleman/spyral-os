@@ -17,7 +17,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (AuthStore.isAuthenticated()) {
-      router.replace("/");
+      router.replace("/my-spyral");
     }
   }, [router]);
 
@@ -29,7 +29,7 @@ export default function LoginPage() {
     setTimeout(() => {
       const result = AuthStore.login(email, password);
       if (result.success) {
-        router.push("/");
+        router.push("/my-spyral");
       } else {
         setError(result.error || "Login failed.");
       }

@@ -16,10 +16,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     initialized.current = true;
   }
 
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => AuthStore.isAuthenticated());
 
   useEffect(() => {
-    setIsAuthenticated(AuthStore.isAuthenticated());
     const unsub = AuthStore.subscribe(() => {
       setIsAuthenticated(AuthStore.isAuthenticated());
     });

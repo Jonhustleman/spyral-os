@@ -11,8 +11,9 @@ import {
   Zap, Play, Clock, BarChart3, Brain, FileText, Sparkles,
   TrendingUp, Activity, ArrowRight, Plus, Home, Send,
   BookOpen, Compass, Briefcase, LayoutDashboard,
-  Lightbulb, Target, CheckCircle, AlertTriangle
+  Lightbulb, Target, CheckCircle, AlertTriangle, Eye
 } from "lucide-react";
+import { SpyralCognitiveCore } from "@/core";
 import { cn } from "@/lib/utils";
 
 const EXAMPLE_COMMANDS = [
@@ -29,6 +30,8 @@ export default function CommandCenterPage() {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [patterns, setPatterns] = useState<any[]>([]);
   const [navSessions, setNavSessions] = useState<any[]>([]);
+  const [showUnderstanding, setShowUnderstanding] = useState(false);
+  const [lastUnderstanding, setLastUnderstanding] = useState<string>("");
 
   useEffect(() => {
     setWorkspaces(WorkspaceStore.getRecent(5));
@@ -38,6 +41,16 @@ export default function CommandCenterPage() {
 
   const handleCommand = () => {
     if (!command.trim()) return;
+
+    // SPYRAL thinks before routing — understand intent via Cognitive Core
+    const cognitive = SpyralCognitiveCore.think({
+      input: command,
+      agentType: "command",
+    });
+    setLastUnderstanding(cognitive.understanding);
+    setShowUnderstanding(true);
+    setTimeout(() => setShowUnderstanding(false), 3000);
+
     const cmd = command.toLowerCase();
     if (cmd.includes("research") || cmd.includes("investigate") || cmd.includes("analyze")) {
       router.push("/research");

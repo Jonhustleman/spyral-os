@@ -18,7 +18,7 @@ export default function SignupPage() {
 
   useEffect(() => {
     if (AuthStore.isAuthenticated()) {
-      router.replace("/");
+      router.replace("/my-spyral");
     }
   }, [router]);
 
@@ -30,7 +30,7 @@ export default function SignupPage() {
     setTimeout(() => {
       const result = AuthStore.signup(email, password, name);
       if (result.success) {
-        router.push("/");
+        router.push("/my-spyral");
       } else {
         setError(result.error || "Signup failed.");
       }

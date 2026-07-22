@@ -4,8 +4,10 @@ import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ProviderManager, type ProviderType } from "@/features/providers";
-import { Sparkles, Send, FileText, Image, Music, Film, Share2, Download, ChevronDown, ChevronUp, Copy, Check, Home } from "lucide-react";
+import { SpyralCognitiveCore } from "@/core";
+import { Sparkles, Send, FileText, Image, Music, Film, Share2, Download, ChevronDown, ChevronUp, Copy, Check, Home, Brain } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ThinkingIndicator } from "@/components/ThinkingIndicator";
 
 // ─── Message types ─────────────────────────────────────────────────────────
 
@@ -94,6 +96,7 @@ type ContentSession = {
   topic: string;
   package: ContentPackage;
   timestamp: number;
+  cognitiveResponse?: import("@/core").CognitiveResponse;
 };
 
 const CONTENT_SESSIONS_KEY = "spyral-content-sessions";
@@ -121,15 +124,18 @@ export default function ContentAgentPage() {
     {
       id: "welcome",
       role: "agent",
-      content: "What would you like to create today?",
+      content: "What would you like to create today?\n\nBefore I produce anything, let me think about your audience, positioning, and strategy.\n\nTell me about your project and I'll develop a complete content package.",
       timestamp: new Date(),
     },
   ]);
   const [package_, setPackage] = useState<ContentPackage | null>(null);
+  const [cognitiveResponse, setCognitiveResponse] = useState<import("@/core").CognitiveResponse | null>(null);
+  const [showThinking, setShowThinking] = useState(false);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [savedSessions, setSavedSessions] = useState<ContentSession[]>([]);
   const [showSessions, setShowSessions] = useState(false);
+  const [isThinking, setIsThinking] = useState(false);
   const [showProviderModal, setShowProviderModal] = useState<ProviderType | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -156,11 +162,12 @@ export default function ContentAgentPage() {
 
   const loadSavedContentSession = (session: ContentSession) => {
     setPackage(session.package);
+    setCognitiveResponse(session.cognitiveResponse || null);
     setMessages([
       {
         id: "welcome",
         role: "agent",
-        content: "What would you like to create today?",
+        content: "What would you like to create today?\n\nBefore I produce anything, let me think about your audience, positioning, and strategy.\n\nTell me about your project and I'll develop a complete content package.",
         timestamp: new Date(),
       },
       {
@@ -172,15 +179,15 @@ export default function ContentAgentPage() {
       {
         id: `agent-${session.timestamp}`,
         role: "agent",
-        content: `I've created a complete content package for "${session.topic}". Here's everything you need to produce and publish.`,
+        content: session.cognitiveResponse?.response || `I've created a complete content package for "${session.topic}". Here's everything you need to produce and publish.`,
         timestamp: new Date(session.timestamp),
       },
     ]);
     setShowSessions(false);
   };
 
-  const handleSubmit = () => {
-    if (!prompt.trim()) return;
+  const handleSubmit = async () => {
+    if (!prompt.trim() || isThinking) return;
 
     const userMsg: Message = {
       id: `user-${Date.now()}`,
@@ -190,8 +197,17 @@ export default function ContentAgentPage() {
     };
 
     setMessages((prev) => [...prev, userMsg]);
+    setIsThinking(true);
 
-    // Generate content package
+    // SPYRAL thinks before creating — research audience, positioning, strategy
+    const cognitive = SpyralCognitiveCore.think({
+      input: prompt,
+      agentType: "content",
+    });
+    setCognitiveResponse(cognitive);
+    setShowThinking(true);
+
+    // Then generate content package
     const pkg = generateContentPackage(prompt);
     setPackage(pkg);
 
@@ -200,6 +216,7 @@ export default function ContentAgentPage() {
       id: `content-${Date.now()}`,
       topic: prompt,
       package: pkg,
+      cognitiveResponse: cognitive,
       timestamp: Date.now(),
     };
     saveContentSession(session);
@@ -208,11 +225,12 @@ export default function ContentAgentPage() {
     const agentMsg: Message = {
       id: `agent-${Date.now()}`,
       role: "agent",
-      content: `I've created a complete content package for "${prompt}". Here's everything you need to produce and publish.`,
+      content: cognitive.response + "\n\nI've prepared a complete content package below with creative brief, storyboard, hooks, and production-ready assets.",
       timestamp: new Date(),
     };
 
     setMessages((prev) => [...prev, agentMsg]);
+    setIsThinking(false);
     setPrompt("");
   };
 
@@ -582,27 +600,38 @@ export default function ContentAgentPage() {
         />
       )}
 
-      {/* Input area */}
-      <div className="border-t border-zinc-800 px-6 py-4">
-        <div className="max-w-3xl mx-auto flex gap-3">
-          <textarea
-            ref={inputRef}
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="What would you like to create today?"
-            className="flex-1 bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-sm text-white placeholder-zinc-600 resize-none focus:outline-none focus:border-zinc-700 transition-colors"
-            rows={1}
-          />
-          <button
-            onClick={handleSubmit}
-            disabled={!prompt.trim()}
-            className="shrink-0 h-10 w-10 rounded-xl bg-white text-black flex items-center justify-center hover:bg-zinc-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-          >
-            <Send className="h-4 w-4" />
-          </button>
+      {/* Thinking indicator */}
+      {isThinking && (
+        <div className="border-t border-zinc-800 px-6 py-3">
+          <div className="max-w-3xl mx-auto">
+            <ThinkingIndicator isThinking={isThinking} />
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Input area */}
+      {!isThinking && (
+        <div className="border-t border-zinc-800 px-6 py-4">
+          <div className="max-w-3xl mx-auto flex gap-3">
+            <textarea
+              ref={inputRef}
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="What would you like to create today?"
+              className="flex-1 bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-sm text-white placeholder-zinc-600 resize-none focus:outline-none focus:border-zinc-700 transition-colors"
+              rows={1}
+            />
+            <button
+              onClick={handleSubmit}
+              disabled={!prompt.trim() || isThinking}
+              className="shrink-0 h-10 w-10 rounded-xl bg-white text-black flex items-center justify-center hover:bg-zinc-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+            >
+              <Send className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

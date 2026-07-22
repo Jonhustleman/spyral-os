@@ -6,9 +6,10 @@ import { LearningStore } from "@/features/learning";
 import {
   Brain, Zap, FileText, TrendingUp, Lightbulb, AlertTriangle,
   Target, Network, BarChart3, Clock, Home, ArrowRight,
-  Copy, Check, BookOpen, CheckCircle, XCircle
+  Copy, Check, BookOpen, CheckCircle, XCircle, Eye, Layers
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { SpyralCognitiveCore, CONFIDENCE_MAX } from "@/core";
 
 type ViewSection = "all" | "patterns" | "strategies" | "research" | "predictions" | "recommendations" | "timeline";
 
@@ -19,6 +20,7 @@ export default function IntelligencePage() {
   const [recommendations, setRecommendations] = useState<any[]>([]);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
+  const [showPipeline, setShowPipeline] = useState(false);
 
   useEffect(() => {
     setPatterns(LearningStore.getPatterns());
@@ -85,6 +87,99 @@ export default function IntelligencePage() {
         })}
       </div>
 
+      {/* Cognitive Pipeline Toggle */}
+      <button
+        onClick={() => setShowPipeline(!showPipeline)}
+        className="flex items-center gap-2 px-4 py-2 mb-6 rounded-lg border border-zinc-800 bg-zinc-900/40 text-sm text-zinc-400 hover:text-white hover:border-zinc-700 transition-colors"
+      >
+        <Eye className="h-4 w-4" />
+        {showPipeline ? "Hide" : "Show"} Cognitive Pipeline
+      </button>
+
+      {showPipeline && (
+        <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-6 mb-8">
+          <div className="flex items-center gap-3 mb-4">
+            <Layers className="h-6 w-6 text-zinc-400" />
+            <h2 className="text-lg font-semibold text-white">SPYRAL Cognitive Pipeline (Phase F.1)</h2>
+          </div>
+          <p className="text-sm text-zinc-500 mb-6">
+            Every think() call runs through Intent Analysis first, then chooses a Reasoning Strategy. Self-critique runs before every response.
+          </p>
+          <div className="space-y-4 text-sm">
+            {/* NEW: Intent Analysis Stage */}
+            <div className="p-3 rounded-lg bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border border-indigo-500/30">
+              <span className="text-indigo-400 font-medium">Stage 0 — Intent Analysis</span>
+              <p className="text-zinc-300 mt-1">
+                Determines domain, complexity, uncertainty, reasoning depth &mdash; then chooses a strategy
+              </p>
+              <div className="flex flex-wrap gap-2 mt-2">
+                <span className="text-xs px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/20">
+                  Strategies: Discovery · Reporting · Planning · Decision · Creation
+                </span>
+                <span className="text-xs px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/20">
+                  Domains: Research · Creation · Navigation · Consulting · Learning
+                </span>
+              </div>
+            </div>
+            <div className="p-3 rounded-lg bg-zinc-800/40 border border-zinc-700/50">
+              <span className="text-purple-400 font-medium">Mental Model</span>
+              <p className="text-zinc-300 mt-1">
+                Domain: General &mdash; Complexity: 5/10 &mdash; Certainty: 50% &mdash; Risk: Medium
+              </p>
+              <p className="text-zinc-500 text-xs mt-1">
+                Status: {patterns.length > 0 ? "Populated with " + (patterns.length + insights.length) + " records" : "Waiting for intelligence data..."}
+              </p>
+            </div>
+            <div className="p-3 rounded-lg bg-zinc-800/40 border border-zinc-700/50">
+              <span className="text-amber-400 font-medium">SOP Analysis</span>
+              <p className="text-zinc-300 mt-1">
+                Context analyzed &mdash; Constraints identified &mdash; Approach formalized
+              </p>
+            </div>
+            <div className="p-3 rounded-lg bg-zinc-800/40 border border-zinc-700/50">
+              <span className="text-emerald-400 font-medium">LDE (Layered Deconstruction Engine)</span>
+              <p className="text-zinc-300 mt-1">
+                Breaking down problems into layers &mdash; Surface → Structural → Foundational
+              </p>
+            </div>
+            <div className="p-3 rounded-lg bg-zinc-800/40 border border-zinc-700/50">
+              <span className="text-blue-400 font-medium">STE (Strategy & Tactic Engine)</span>
+              <p className="text-zinc-300 mt-1">
+                Generating strategies based on mental model and deconstruction
+              </p>
+            </div>
+            <div className="p-3 rounded-lg bg-zinc-800/40 border border-zinc-700/50">
+              <span className="text-cyan-400 font-medium">SVE (Subconscious Variable Engine)</span>
+              <p className="text-zinc-300 mt-1">
+                Surfacing hidden variables and blind spots &mdash; Max confidence: {Math.round(CONFIDENCE_MAX * 100)}%
+              </p>
+            </div>
+            <div className="p-3 rounded-lg bg-zinc-800/40 border border-zinc-700/50">
+              <span className="text-rose-400 font-medium">SAE (Strategic Action Engine)</span>
+              <p className="text-zinc-300 mt-1">
+                Converting strategies into concrete action items with prioritization
+              </p>
+            </div>
+            <div className="p-3 rounded-lg bg-zinc-800/40 border border-zinc-700/50">
+              <span className="text-violet-400 font-medium">Memory & Learning</span>
+              <p className="text-zinc-300 mt-1">
+                {patterns.length} patterns, {insights.length} insights, {recommendations.length} recommendations stored in LearningStore
+              </p>
+            </div>
+            {/* NEW: Self-Critique Stage */}
+            <div className="p-3 rounded-lg bg-gradient-to-r from-orange-500/10 to-rose-500/10 border border-orange-500/30">
+              <span className="text-orange-400 font-medium">Final — Self-Critique</span>
+              <p className="text-zinc-300 mt-1">
+                Reviews every response before sending: challenges hasty answers, checks for assumptions challenged, ensures curiosity, avoids false certainty
+              </p>
+              <p className="text-zinc-500 text-xs mt-1">
+                Think count: {SpyralCognitiveCore.getThinkCount()} &mdash; Conversation turns tracked automatically
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Knowledge Graph Overview */}
       {activeSection === "all" && (
         <>
@@ -102,20 +197,20 @@ export default function IntelligencePage() {
                 <p className="text-xs text-zinc-500 mt-1">Patterns</p>
               </div>
               <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-3 text-center">
-                <p className="text-2xl font-bold text-amber-400">0</p>
-                <p className="text-xs text-zinc-500 mt-1">Strategies</p>
-              </div>
-              <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-3 text-center">
-                <p className="text-2xl font-bold text-emerald-400">{insights.length}</p>
+                <p className="text-2xl font-bold text-amber-400">{insights.length}</p>
                 <p className="text-xs text-zinc-500 mt-1">Insights</p>
               </div>
-              <div className="rounded-lg bg-blue-500/10 border border-blue-500/20 p-3 text-center">
-                <p className="text-2xl font-bold text-blue-400">{recommendations.length}</p>
+              <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-3 text-center">
+                <p className="text-2xl font-bold text-emerald-400">{recommendations.length}</p>
                 <p className="text-xs text-zinc-500 mt-1">Recommendations</p>
               </div>
+              <div className="rounded-lg bg-blue-500/10 border border-blue-500/20 p-3 text-center">
+                <p className="text-2xl font-bold text-blue-400">{patterns.length + insights.length + recommendations.length}</p>
+                <p className="text-xs text-zinc-500 mt-1">Total Records</p>
+              </div>
               <div className="rounded-lg bg-cyan-500/10 border border-cyan-500/20 p-3 text-center">
-                <p className="text-2xl font-bold text-cyan-400">0</p>
-                <p className="text-xs text-zinc-500 mt-1">Research</p>
+                <p className="text-2xl font-bold text-cyan-400">{SpyralCognitiveCore.getThinkCount()}</p>
+                <p className="text-xs text-zinc-500 mt-1">Think Cycles</p>
               </div>
             </div>
           </div>

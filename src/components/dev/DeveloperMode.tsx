@@ -17,13 +17,14 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Bug, ChevronDown, ChevronRight, HardDrive, Box, Layers, Route, Brain, Play, Database, Tag } from "lucide-react";
+import { Bug, ChevronDown, ChevronRight, HardDrive, Box, Layers, Route, Brain, Play, Database, Tag, BarChart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CapabilityRegistry } from "@/features/capabilities";
 import { WorkspaceStore } from "@/features/workspace";
 import { NavigationStore } from "@/features/navigation/navigation.store";
 import { LearningStore } from "@/features/learning/learning.store";
 import { ExecutionStore } from "@/features/execution/execution.store";
+import { DeveloperIntelligence } from "./DeveloperIntelligence";
 
 // ─── Constants ──────────────────────────────────────────────────────────
 
@@ -104,6 +105,7 @@ function Section({
 // ─── Main Component ─────────────────────────────────────────────────────
 
 export function DeveloperMode() {
+  const [activeTab, setActiveTab] = useState<"diagnostics" | "intelligence">("diagnostics");
   const [capabilities, setCapabilities] = useState<any[]>([]);
   const [workspaceCount, setWorkspaceCount] = useState(0);
   const [navSessions, setNavSessions] = useState(0);
@@ -132,16 +134,49 @@ export function DeveloperMode() {
     };
   }, [refresh]);
 
+  if (activeTab === "intelligence") {
+    return (
+      <div className="space-y-6">
+        {/* Tab nav */}
+        <div className="flex items-center gap-2 mb-2">
+          <button
+            onClick={() => setActiveTab("diagnostics")}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 transition-colors"
+          >
+            <Bug className="w-3.5 h-3.5" />
+            Diagnostics
+          </button>
+          <button
+            onClick={() => setActiveTab("intelligence")}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs bg-purple-900/50 text-purple-300 border border-purple-700/50"
+          >
+            <BarChart className="w-3.5 h-3.5" />
+            Product Intelligence
+          </button>
+        </div>
+        <DeveloperIntelligence />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3 mb-2">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-800">
-          <Bug className="w-4 h-4 text-zinc-400" />
-        </div>
-        <div>
-          <h2 className="text-sm font-semibold text-white">Developer Mode</h2>
-          <p className="text-xs text-zinc-600">Diagnostic information for engineering</p>
-        </div>
+      {/* Tab nav */}
+      <div className="flex items-center gap-2 mb-2">
+        <button
+          onClick={() => setActiveTab("diagnostics")}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs bg-zinc-800 text-zinc-300"
+        >
+          <Bug className="w-3.5 h-3.5" />
+          Diagnostics
+        </button>
+        <button
+          onClick={() => setActiveTab("intelligence")}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 transition-colors"
+        >
+          <BarChart className="w-3.5 h-3.5" />
+          Product Intelligence
+        </button>
       </div>
 
       {/* Version Info */}
