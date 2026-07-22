@@ -179,7 +179,7 @@ export default function ConsultantAgentPage() {
     {
       id: "welcome",
       role: "agent",
-      content: "What challenge are we solving today?\n\nI'm your SPYRAL Strategic Advisor. I don't just agree — I challenge assumptions, identify blind spots, explain tradeoffs, and help you make better decisions.\n\nShare your situation and I'll diagnose root causes, build options, and recommend a path forward.",
+      content: "I'm your thinking partner. I'm here to challenge your assumptions, offer competing viewpoints, and help you see what you might be missing.\n\nI don't generate reports unless you ask me to. Instead, let's talk through your situation.\n\nWhat's on your mind?",
       timestamp: new Date(),
     },
   ]);
@@ -252,20 +252,26 @@ export default function ConsultantAgentPage() {
     setMessages((prev) => [...prev, userMsg]);
     setIsThinking(true);
 
-    // SPYRAL thinks first — challenges assumptions, diagnoses root causes
+    // SPYRAL thinks — challenges assumptions, offers competing viewpoints
     const cognitive = SpyralCognitiveCore.think({
       input: prompt,
       agentType: "consultant",
     });
     setCognitiveResponse(cognitive);
 
-    const r = generateConsultantReport(prompt);
-    setReport(r);
+    // Only generate a structured report if explicitly asked
+    const wantsReport = /report|roadmap|plan|analysis|diagnosis/i.test(prompt);
+    if (wantsReport) {
+      const r = generateConsultantReport(prompt);
+      setReport(r);
+    }
 
     const agentMsg: Message = {
       id: `agent-${Date.now()}`,
       role: "agent",
-      content: `${cognitive.response}\n\nBelow is my complete strategic assessment with diagnosis, recommendations, and a 90-day roadmap.`,
+      content: wantsReport
+        ? `${cognitive.response}\n\nBelow is my complete strategic assessment.`
+        : cognitive.response,
       timestamp: new Date(),
     };
 
@@ -432,8 +438,8 @@ export default function ConsultantAgentPage() {
           <div className="flex items-center gap-3">
             <span className="text-2xl">💼</span>
             <div>
-              <h1 className="text-lg font-semibold text-white">Consultant Agent</h1>
-              <p className="text-xs text-zinc-500">SPYRAL Elite Strategic Advisor</p>
+              <h1 className="text-lg font-semibold text-white">Consultant</h1>
+              <p className="text-xs text-zinc-500">Thinking Partner — challenging assumptions, not generating reports</p>
             </div>
           </div>
           <div className="flex items-center gap-2">

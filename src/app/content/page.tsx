@@ -124,7 +124,7 @@ export default function ContentAgentPage() {
     {
       id: "welcome",
       role: "agent",
-      content: "What would you like to create today?\n\nBefore I produce anything, let me think about your audience, positioning, and strategy.\n\nTell me about your project and I'll develop a complete content package.",
+      content: "Let's start with three questions before we create anything.\n\n**What change are we trying to create?**\n**Who needs to change?**\n**Why aren't they changing today?**\n\nTell me about the shift you want to make — and I'll help you craft the content to make it happen.",
       timestamp: new Date(),
     },
   ]);
@@ -167,7 +167,7 @@ export default function ContentAgentPage() {
       {
         id: "welcome",
         role: "agent",
-        content: "What would you like to create today?\n\nBefore I produce anything, let me think about your audience, positioning, and strategy.\n\nTell me about your project and I'll develop a complete content package.",
+        content: "Let's start with three questions before we create anything.\n\n**What change are we trying to create?**\n**Who needs to change?**\n**Why aren't they changing today?**\n\nTell me about the shift you want to make — and I'll help you craft the content to make it happen.",
         timestamp: new Date(),
       },
       {
@@ -433,8 +433,8 @@ export default function ContentAgentPage() {
           <div className="flex items-center gap-3">
             <span className="text-2xl">✨</span>
             <div>
-              <h1 className="text-lg font-semibold text-white">Content Agent</h1>
-              <p className="text-xs text-zinc-500">SPYRAL AI Content Creator</p>
+              <h1 className="text-lg font-semibold text-white">Content</h1>
+              <p className="text-xs text-zinc-500">Before creating, let's understand the change you want to make</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -618,7 +618,7 @@ export default function ContentAgentPage() {
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="What would you like to create today?"
+              placeholder="What change are you trying to create?"
               className="flex-1 bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-sm text-white placeholder-zinc-600 resize-none focus:outline-none focus:border-zinc-700 transition-colors"
               rows={1}
             />

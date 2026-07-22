@@ -4,21 +4,19 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 /**
- * SPYRAL Thinking Indicator — UX-only stage indicators.
+ * Thinking Indicator — human-readable stage indicators.
  *
- * Shows cycling stage messages while SPYRAL is processing.
- * These are UI indicators ONLY — never reveals chain of thought.
- *
- * Stages cycle through common cognitive pipeline phases.
+ * Shows cycling stage messages while processing.
+ * These are UI indicators ONLY — never reveals internal reasoning.
  */
 const STAGES = [
-  { icon: "🧭", label: "Understanding your objective..." },
-  { icon: "🔍", label: "Looking for hidden assumptions..." },
-  { icon: "🧠", label: "Building your Reality Model..." },
-  { icon: "🧩", label: "Detecting hidden patterns..." },
-  { icon: "⚖️", label: "Stress-testing strategies..." },
-  { icon: "📍", label: "Designing your execution path..." },
-  { icon: "✨", label: "Thinking with the SPYRAL Cognitive Core..." },
+  { icon: "🧭", label: "Understanding your goal..." },
+  { icon: "🔍", label: "Looking for similar situations..." },
+  { icon: "🧠", label: "Finding hidden assumptions..." },
+  { icon: "🧩", label: "Testing possible paths..." },
+  { icon: "⚖️", label: "Comparing alternatives..." },
+  { icon: "📍", label: "Designing the strongest approach..." },
+  { icon: "✨", label: "Almost ready..." },
 ];
 
 interface ThinkingIndicatorProps {

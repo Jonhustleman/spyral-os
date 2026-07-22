@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { WorkspaceStore } from "@/features/workspace";
 import { NavigationStore } from "@/features/navigation";
 import { LearningStore } from "@/features/learning";
+import { SpyralSession } from "@/features/session";
 import type { Workspace } from "@/kernel/contracts/Workspace";
 import {
   Zap, Play, Clock, BarChart3, Brain, FileText, Sparkles,
@@ -32,11 +33,22 @@ export default function CommandCenterPage() {
   const [navSessions, setNavSessions] = useState<any[]>([]);
   const [showUnderstanding, setShowUnderstanding] = useState(false);
   const [lastUnderstanding, setLastUnderstanding] = useState<string>("");
+  const [activeMission, setActiveMission] = useState("");
+  const [activeInvestigation, setActiveInvestigation] = useState("");
 
   useEffect(() => {
     setWorkspaces(WorkspaceStore.getRecent(5));
     setPatterns(LearningStore.getPatterns().slice(0, 3));
     setNavSessions(NavigationStore.getAll().slice(0, 4));
+
+    // Load from SpyralSession
+    SpyralSession.init();
+    const missions = SpyralSession.getMissions();
+    const activeM = missions.find((m: any) => m.status === "active");
+    setActiveMission(activeM?.title || "");
+    const investigations = SpyralSession.getInvestigations();
+    const activeI = investigations.find((i: any) => i.status === "active");
+    setActiveInvestigation(activeI?.question || "");
   }, []);
 
   const handleCommand = () => {
@@ -78,7 +90,7 @@ export default function CommandCenterPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-xl font-semibold text-white">Command Center</h1>
-          <p className="text-sm text-zinc-500">Control every SPYRAL capability</p>
+          <p className="text-sm text-zinc-500">Connected view of your missions, investigations, and progress</p>
         </div>
         <Link
           href="/"
@@ -128,6 +140,30 @@ export default function CommandCenterPage() {
           ))}
         </div>
       </div>
+
+      {/* Current Mission & Investigation */}
+      {(activeMission || activeInvestigation) && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+          {activeMission && (
+            <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Target className="h-4 w-4 text-amber-400" />
+                <h3 className="text-xs font-medium text-zinc-400 uppercase tracking-wider">Current Mission</h3>
+              </div>
+              <p className="text-sm text-white">{activeMission}</p>
+            </div>
+          )}
+          {activeInvestigation && (
+            <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <BookOpen className="h-4 w-4 text-blue-400" />
+                <h3 className="text-xs font-medium text-zinc-400 uppercase tracking-wider">Active Investigation</h3>
+              </div>
+              <p className="text-sm text-white">{activeInvestigation}</p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">

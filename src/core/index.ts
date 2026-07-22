@@ -41,6 +41,49 @@ export {
   DeveloperInsights,
 } from "./product-intelligence";
 
+// ─── Cognitive Memory Architecture ────────────────────────────────────
+
+export { MemoryEngine } from "./memory";
+export type {
+  // Core types
+  MemoryState,
+  MemoryMetrics,
+  MemoryScope,
+  MemoryAPI,
+
+  // Memory types
+  IdentityMemory,
+  EpisodeMemory,
+  EpisodeType,
+  WorkingMemory,
+  SemanticFact,
+  ProceduralPattern,
+  ProjectMemory,
+  InvestigationMemory,
+  DetectedPattern,
+  Prediction,
+  Reflection,
+  ReflectionType,
+  TimelineEntry,
+  TimelineType,
+
+  // Knowledge Graph (import from @/core/memory if needed)
+  // GraphNode, GraphEdge, NodeType, EdgeType — use from memory module directly
+
+  // Retrieval & Search
+  RecallOptions,
+  SummarizeOptions,
+  ContextOptions,
+  RetrievedContext,
+  RetrievedMemory,
+  SearchResult,
+  RelationshipResult,
+  ConsolidationResult,
+
+  // Agent Memory
+  AgentId,
+} from "./memory";
+
 export type {
   ExperienceEvent,
   ExperienceEventType,

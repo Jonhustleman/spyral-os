@@ -6,6 +6,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { Eye, EyeOff, ArrowRight } from "lucide-react";
 import { AuthStore } from "@/features/auth";
+import { SpyralSession } from "@/features/session";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -18,7 +19,7 @@ export default function SignupPage() {
 
   useEffect(() => {
     if (AuthStore.isAuthenticated()) {
-      router.replace("/my-spyral");
+      router.replace("/");
     }
   }, [router]);
 
@@ -30,7 +31,12 @@ export default function SignupPage() {
     setTimeout(() => {
       const result = AuthStore.signup(email, password, name);
       if (result.success) {
-        router.push("/my-spyral");
+        // Initialize session and go to onboarding
+        SpyralSession.init();
+        // Store the user's name from signup
+        const profile = SpyralSession.getUser() || { name, email, onboarded: false } as any;
+        SpyralSession.setUser({ ...profile, name, email } as any);
+        router.push("/");
       } else {
         setError(result.error || "Signup failed.");
       }

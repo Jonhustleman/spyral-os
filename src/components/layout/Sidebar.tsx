@@ -19,6 +19,7 @@ const NAV_ITEMS = [
   { label: "Consultant Agent", href: "/consultant", icon: "💼" },
   { label: "Command Center", href: "/command", icon: "📊" },
   { label: "Intelligence", href: "/intelligence", icon: "🧠" },
+  { label: "Memory", href: "/memory", icon: "💾" },
   { label: "Learning", href: "/learning", icon: "📚" },
   { label: "My SPYRAL", href: "/my-spyral", icon: "👤" },
   { label: "Settings", href: "/settings", icon: "⚙" },
