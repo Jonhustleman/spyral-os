@@ -17,6 +17,8 @@
 import { LearningStore } from "@/features/learning";
 import { SharedContextStore } from "@/features/shared";
 import { ExperienceRecorder } from "@/core/product-intelligence";
+import { GenomeBootloader, type PreThinkContext } from "@/core/genome";
+import { IDENTITY, COGNITIVE_CONTRACTS } from "@/core/genome";
 
 // ─── Constants ──────────────────────────────────────────────────────────
 
@@ -252,6 +254,8 @@ function generateId(): string {
 
 class SpyralCognitiveCoreImpl {
   private static _thinkCount = 0;
+  private static _genomeBooted = false;
+  private static _genomeContext: PreThinkContext | null = null;
 
   /** Conversation memory — SPYRAL remembers across turns */
   private static _conversation: ConversationContext = {
@@ -264,13 +268,23 @@ class SpyralCognitiveCoreImpl {
     turnCount: 0,
   };
 
+  /** Ensure Genome bootloader has executed */
+  private static ensureGenomeBooted(): void {
+    if (!SpyralCognitiveCoreImpl._genomeBooted) {
+      GenomeBootloader.boot();
+      SpyralCognitiveCoreImpl._genomeBooted = true;
+    }
+  }
+
   /** Get the current conversation context */
   static getConversation(): ConversationContext {
+    SpyralCognitiveCoreImpl.ensureGenomeBooted();
     return { ...SpyralCognitiveCoreImpl._conversation };
   }
 
   /** Number of times think() has been called across the entire app */
   static getThinkCount(): number {
+    SpyralCognitiveCoreImpl.ensureGenomeBooted();
     return SpyralCognitiveCoreImpl._thinkCount;
   }
 
@@ -299,13 +313,23 @@ class SpyralCognitiveCoreImpl {
   think(input: ThinkInput): CognitiveResponse {
     SpyralCognitiveCoreImpl._thinkCount++;
 
+    // ─── GENOME BOOT (IMMUTABLE COGNITIVE IDENTITY) ───────────────────
+    // Every think() loads and prepares the Genome before any reasoning.
+    // The Genome governs how SPYRAL exists — not how it answers.
+    // It is NEVER exposed to the user.
+    SpyralCognitiveCoreImpl.ensureGenomeBooted();
+    SpyralCognitiveCoreImpl._genomeContext = GenomeBootloader.prepareForThinking(input.agentType);
+
     // ─── RECORD INTERACTION EVENT (PHASE G.0) ──────────────────────────
     // Every think() call is recorded as interaction metadata (not content).
     const tempStartTime = Date.now();
     ExperienceRecorder.recordEvent("thinking_started", {
       agentType: input.agentType,
       page: input.agentType,
-      metadata: { inputLength: input.input.length },
+      metadata: {
+        inputLength: input.input.length,
+        genomeVersion: GenomeBootloader.getVersion(),
+      },
     });
 
     // ─── STAGE 0: INTENT ANALYSIS (PHASE F.1) ──────────────────────────
@@ -407,6 +431,9 @@ class SpyralCognitiveCoreImpl {
     });
 
     const confidence = sve.confidence;
+
+    // ─── CLEAR GENOME CONTEXT ─────────────────────────────────────────
+    SpyralCognitiveCoreImpl._genomeContext = null;
 
     return {
       input: input.input,
@@ -624,6 +651,33 @@ class SpyralCognitiveCoreImpl {
     const memories = SharedContextStore.getMemories();
     const relevant: { agent: string; summary: string }[] = [];
 
+    // ─── GENOME CONTEXT INTEGRATION ───────────────────────────────────
+    // Include patterns, timeline events, predictions, and knowledge
+    // connections discovered by the GenomeBootloader from MemoryEngine.
+    const gc = SpyralCognitiveCoreImpl._genomeContext;
+    if (gc) {
+      for (const pattern of gc.patterns) {
+        if (pattern) {
+          relevant.push({ agent: "genome", summary: `Pattern: ${pattern}` });
+        }
+      }
+      for (const event of gc.timeline.slice(0, 3)) {
+        if (event.summary) {
+          relevant.push({ agent: "genome", summary: `Previous: ${event.summary}` });
+        }
+      }
+      for (const pred of gc.predictions.slice(0, 2)) {
+        if (pred) {
+          relevant.push({ agent: "genome", summary: `Prediction: ${pred}` });
+        }
+      }
+      for (const conn of gc.knowledgeConnections.slice(0, 3)) {
+        if (conn) {
+          relevant.push({ agent: "genome", summary: `Related: ${conn}` });
+        }
+      }
+    }
+
     // Find memories that relate to the current input
     const inputWords = input.input.toLowerCase().split(/\s+/);
 
@@ -667,6 +721,13 @@ class SpyralCognitiveCoreImpl {
   ): MentalModel {
     const text = input.input;
 
+    // ─── GENOME IDENTITY INTEGRATION ──────────────────────────────────
+    // The genome's identity and agent disposition silently shape
+    // how SPYRAL frames its mental model of the user's request.
+    const gc = SpyralCognitiveCoreImpl._genomeContext;
+    const disposition = gc?.disposition ?? ["Curious.", "Collaborative."];
+    const purpose = IDENTITY.purpose;
+
     // Derive current reality from input
     let currentReality = `The user is engaging with SPYRAL ${input.agentType} about: "${text}".`;
     let desiredReality = `The user wants to achieve or understand something related to: "${text}".`;
@@ -674,27 +735,27 @@ class SpyralCognitiveCoreImpl {
 
     // Try to infer more specific realities based on agent type
     if (input.agentType === "research") {
-      currentReality = `The user has a question or topic they want to investigate: "${text}". They may have assumptions and partial knowledge.`;
+      currentReality = `The user has a question or topic they want to investigate: "${text}". They may have assumptions and partial knowledge. SPYRAL's disposition: ${disposition.join(" ")}`;
       desiredReality = "A deeper, evidence-based understanding of the topic with validated findings and clear next steps.";
-      goal = `Discover truth about: "${text}" through structured investigation.`;
+      goal = `Discover truth about: "${text}" through structured investigation. Purpose: ${purpose}`;
     }
 
     if (input.agentType === "content") {
-      currentReality = `The user has a content need or idea: "${text}". They need structured creative output.`;
+      currentReality = `The user has a content need or idea: "${text}". They need structured creative output. SPYRAL's disposition: ${disposition.join(" ")}`;
       desiredReality = "A comprehensive content package with strategy, creative assets, and publishing plan.";
-      goal = `Create compelling content about: "${text}" that resonates with the target audience.`;
+      goal = `Create compelling content about: "${text}" that resonates with the target audience. Purpose: ${purpose}`;
     }
 
     if (input.agentType === "consultant") {
-      currentReality = `The user faces a situation: "${text}". They need expert strategic guidance.`;
+      currentReality = `The user faces a situation: "${text}". They need expert strategic guidance. SPYRAL's disposition: ${disposition.join(" ")}`;
       desiredReality = "A clear diagnosis, actionable strategy, and 90-day roadmap to address the challenge.";
-      goal = `Solve the challenge: "${text}" with strategic analysis and recommendations.`;
+      goal = `Solve the challenge: "${text}" with strategic analysis and recommendations. Purpose: ${purpose}`;
     }
 
     if (input.agentType === "navigation") {
-      currentReality = `The user's current situation regarding: "${text}".`;
+      currentReality = `The user's current situation regarding: "${text}". SPYRAL's disposition: ${disposition.join(" ")}`;
       desiredReality = `The user's desired future state regarding: "${text}".`;
-      goal = `Navigate from current reality to desired reality for: "${text}".`;
+      goal = `Navigate from current reality to desired reality for: "${text}". Purpose: ${purpose}`;
     }
 
     // Generate constraints, facts, assumptions based on input patterns
@@ -1070,6 +1131,16 @@ class SpyralCognitiveCoreImpl {
     if (assumptionsIdentified.length > 3) {
       confidence -= 0.05;
     }
+
+    // ─── COGNITIVE CONTRACT EVALUATION ─────────────────────────────────
+    // The Genome's cognitive contracts silently adjust confidence.
+    // If contracts are violated, confidence is reduced.
+    const contractPenalty = GenomeBootloader.evaluateContracts(
+      missingEvidence.length > 0, // uncertainty reported
+      supportingEvidence.length / Math.max(supportingEvidence.length + contradictingEvidence.length, 1), // evidence strength
+      missingEvidence.length > 0 || mentalModel.unknownVariables.length > 0, // unknowns explicit
+    );
+    confidence -= contractPenalty;
 
     // Max confidence without strong evidence is 85%
     confidence = Math.min(confidence, 0.85);

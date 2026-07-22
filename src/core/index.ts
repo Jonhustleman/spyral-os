@@ -29,6 +29,26 @@ export type {
   ThinkInput,
 } from "./SpyralCognitiveCore";
 
+// ─── Genome — Immutable Cognitive Identity ─────────────────────────────
+// The Genome is the constitutional DNA of SPYRAL.
+// It governs how SPYRAL exists — not how it answers.
+// It is NEVER exposed to the user.
+
+export {
+  SPYRAL_GENOME,
+  CONSTITUTION,
+  CORE_OBJECTS,
+  COGNITIVE_RUNTIME,
+  COGNITIVE_STAGE_DEFINITIONS,
+  OPERATING_LANGUAGE,
+  COGNITIVE_CONTRACTS,
+  IDENTITY,
+  AGENT_DISPOSITIONS,
+  GENOME_VERSION,
+  GenomeBootloader,
+} from "./genome";
+export type { SpyralGenome, BootContext, PreThinkContext } from "./genome";
+
 // ─── Phase G.0 — Product Intelligence ──────────────────────────────────
 
 export {
