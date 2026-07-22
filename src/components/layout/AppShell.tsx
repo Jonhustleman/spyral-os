@@ -16,10 +16,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     initialized.current = true;
   }
 
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => AuthStore.isAuthenticated());
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [bannerDismissed, setBannerDismissed] = useState(false);
 
   useEffect(() => {
+    // Only check auth on client after mount to prevent hydration mismatch
+    setIsAuthenticated(AuthStore.isAuthenticated());
     const unsub = AuthStore.subscribe(() => {
       setIsAuthenticated(AuthStore.isAuthenticated());
     });
