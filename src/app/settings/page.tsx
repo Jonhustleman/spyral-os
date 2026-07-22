@@ -9,8 +9,9 @@
 
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
-import { Settings, Bug } from "lucide-react";
+import { Settings, Bug, Home } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DeveloperMode } from "@/components/dev/DeveloperMode";
 
@@ -28,6 +29,13 @@ export default function SettingsPage() {
               Configure your SPYRAL OS preferences.
             </p>
           </div>
+          <Link
+            href="/"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-800 bg-zinc-900/40 text-zinc-400 hover:text-white hover:bg-zinc-800/60 hover:border-zinc-700 transition-all text-sm"
+          >
+            <Home className="h-4 w-4" />
+            Home
+          </Link>
         </div>
 
         {/* Preferences */}

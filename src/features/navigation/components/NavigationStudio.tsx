@@ -13,8 +13,9 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Compass, ArrowRight, Clock, Plus, Trash2, Sparkles } from "lucide-react";
+import { Compass, ArrowRight, Clock, Plus, Trash2, Sparkles, Home } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NavigationStore } from "../navigation.store";
 import { NavigationStage } from "@/kernel/contracts/NavigationStage";
@@ -373,6 +374,17 @@ export function NavigationStudio({ workspaceId = "default" }: NavigationStudioPr
 
   return (
     <div className="min-h-[calc(100vh-8rem)] flex flex-col items-center justify-center px-4">
+      {/* Home button */}
+      <div className="absolute top-6 left-6">
+        <Link
+          href="/"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-800 bg-zinc-900/40 text-zinc-400 hover:text-white hover:bg-zinc-800/60 hover:border-zinc-700 transition-all text-sm"
+        >
+          <Home className="h-4 w-4" />
+          Home
+        </Link>
+      </div>
+
       {/* Logo / Brand */}
       <div className="mb-8 flex flex-col items-center">
         <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-zinc-900 border border-zinc-800 mb-4">

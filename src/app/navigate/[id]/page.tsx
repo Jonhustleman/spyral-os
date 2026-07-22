@@ -10,7 +10,8 @@ import { useParams, useRouter } from "next/navigation";
 import { WorkspaceStore, WorkspaceRegistry } from "@/features/workspace";
 import type { Workspace } from "@/kernel/contracts/Workspace";
 import { WorkspaceStatus } from "@/kernel/contracts/Workspace";
-import { ArrowLeft, Layers, Briefcase, Command, Compass, Navigation, BookOpen, Settings } from "lucide-react";
+import { ArrowLeft, Layers, Briefcase, Command, Compass, Navigation, BookOpen, Settings, Home } from "lucide-react";
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { CapabilityRegistry } from "@/features/capabilities";
 import { getCapabilityIcon } from "@/features/capabilities/icon-map";
@@ -76,14 +77,23 @@ export default function WorkspaceDetailPage() {
 
   return (
     <div className="flex-1 px-6 py-8 max-w-4xl mx-auto w-full">
-      {/* Back link */}
-      <button
-        onClick={() => router.push("/navigate")}
-        className="flex items-center gap-1.5 text-sm text-zinc-500 hover:text-white transition-colors mb-6"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Back to workspaces
-      </button>
+      {/* Back link & Home */}
+      <div className="flex items-center gap-3 mb-6">
+        <button
+          onClick={() => router.push("/navigate")}
+          className="flex items-center gap-2 rounded-lg bg-zinc-900 border border-zinc-800 px-3 py-1.5 text-sm text-zinc-400 hover:text-white hover:border-zinc-700 transition-colors"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back
+        </button>
+        <Link
+          href="/"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-800 bg-zinc-900/40 text-zinc-400 hover:text-white hover:bg-zinc-800/60 hover:border-zinc-700 transition-all text-sm"
+        >
+          <Home className="h-4 w-4" />
+          Home
+        </Link>
+      </div>
 
       {/* Workspace header */}
       <div className="mb-8">

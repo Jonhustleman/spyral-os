@@ -72,6 +72,11 @@ export const DecisionStore = {
     return this.getAll().filter((d) => d.context.workspaceId === workspaceId);
   },
 
+  /** Get decisions that are pending (in draft status, not yet made). */
+  getPending(): Decision[] {
+    return this.getAll().filter((d) => d.status === "draft");
+  },
+
   create(decision: Omit<Decision, "id" | "createdAt"> & { updatedAt?: Date }): Decision {
     const all = this.getAll();
     const newDecision: Decision = {

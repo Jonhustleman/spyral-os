@@ -1,23 +1,38 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { WorkspaceSwitcher } from "@/features/workspace";
 import { WorkspaceWizard } from "@/features/workspace";
-import { CapabilityRegistry } from "@/features/capabilities/registry/CapabilityRegistry";
-import { getCapabilityIcon } from "@/features/capabilities/icon-map";
-import type { Capability } from "@/kernel/contracts/Capability";
+import { AuthStore } from "@/features/auth";
+import { LogOut, User } from "lucide-react";
+
+// ─── Sidebar navigation items ────────────────────────────────────────────
+
+const NAV_ITEMS = [
+  { label: "Home", href: "/", icon: "🏠" },
+  { label: "Content Agent", href: "/content", icon: "✨" },
+  { label: "Research Agent", href: "/research", icon: "🔬" },
+  { label: "Navigation Agent", href: "/navigate", icon: "🧭" },
+  { label: "Consultant Agent", href: "/consultant", icon: "💼" },
+  { label: "Command Center", href: "/command", icon: "📊" },
+  { label: "Intelligence", href: "/intelligence", icon: "🧠" },
+  { label: "Learning", href: "/learning", icon: "📚" },
+  { label: "Settings", href: "/settings", icon: "⚙" },
+];
 
 export function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const [showWizard, setShowWizard] = useState(false);
-  const [capabilities, setCapabilities] = useState<Capability[]>([]);
+  const user = AuthStore.getUser();
 
-  useEffect(() => {
-    setCapabilities(CapabilityRegistry.getEnabled());
-  }, [pathname]);
+  const handleLogout = () => {
+    AuthStore.logout();
+    router.push("/");
+  };
 
   return (
     <>
@@ -37,20 +52,16 @@ export function Sidebar() {
         </div>
 
         <nav className="flex-1 px-3 py-0 space-y-0.5">
-          {capabilities.map((cap) => {
-            const primaryRoute = cap.routes[0];
+          {NAV_ITEMS.map((item) => {
             const isActive =
-              primaryRoute === "/"
+              item.href === "/"
                 ? pathname === "/"
-                : primaryRoute
-                  ? pathname.startsWith(primaryRoute)
-                  : false;
-            const Icon = getCapabilityIcon(cap.icon);
+                : pathname.startsWith(item.href);
 
             return (
               <Link
-                key={cap.id}
-                href={primaryRoute ?? "/"}
+                key={item.href}
+                href={item.href}
                 className={cn(
                   "flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors",
                   isActive
@@ -58,15 +69,34 @@ export function Sidebar() {
                     : "text-[#a1a1aa] hover:text-white hover:bg-[#27272a]/50"
                 )}
               >
-                <Icon className="h-4 w-4 shrink-0" />
-                <span>{cap.manifest.title}</span>
+                <span className="text-base shrink-0">{item.icon}</span>
+                <span>{item.label}</span>
               </Link>
             );
           })}
         </nav>
 
-        <div className="border-t border-[#27272a] px-4 py-3">
-          <p className="text-xs text-[#52525b]">Reality Navigation Platform</p>
+        {/* User Profile & Logout */}
+        <div className="border-t border-[#27272a] px-3 py-3 space-y-2">
+          {user && (
+            <div className="flex items-center gap-2.5 px-3 py-1.5">
+              <div className="h-7 w-7 rounded-full bg-zinc-800 flex items-center justify-center shrink-0">
+                <User className="h-3.5 w-3.5 text-zinc-400" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-white truncate">{user.name}</p>
+                <p className="text-[10px] text-zinc-600 truncate">{user.email}</p>
+              </div>
+            </div>
+          )}
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-2.5 px-3 py-1.5 rounded-md text-xs text-[#a1a1aa] hover:text-white hover:bg-[#27272a]/50 transition-colors w-full"
+          >
+            <LogOut className="h-3.5 w-3.5" />
+            <span>Sign Out</span>
+          </button>
+          <p className="text-[10px] text-[#52525b] px-3">SPYRAL AI Ecosystem</p>
         </div>
       </aside>
 

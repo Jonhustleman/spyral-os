@@ -70,6 +70,16 @@ export const ExecutionStore = {
     return load<ExecutionPlan[]>(STORAGE_KEY_PLANS, []);
   },
 
+  /** Get plans that are in an active (non-terminal) state. */
+  getActivePlans(): ExecutionPlan[] {
+    const terminal = new Set([
+      ExecutionStatus.COMPLETED,
+      ExecutionStatus.CANCELLED,
+      ExecutionStatus.FAILED,
+    ]);
+    return this.getPlans().filter((p) => !terminal.has(p.status));
+  },
+
   getPlanById(id: string): ExecutionPlan | undefined {
     return this.getPlans().find((p) => p.id === id);
   },
