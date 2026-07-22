@@ -115,8 +115,8 @@ export default function IntelligencePage() {
                 <p className="text-xs text-zinc-500 mt-1">Total Records</p>
               </div>
               <div className="rounded-lg bg-cyan-500/10 border border-cyan-500/20 p-3 text-center">
-                <p className="text-2xl font-bold text-cyan-400">{SpyralCognitiveCore.getThinkCount()}</p>
-                <p className="text-xs text-zinc-500 mt-1">Think Cycles</p>
+                <p className="text-2xl font-bold text-cyan-400">{patterns.length + insights.length + recommendations.length}</p>
+                <p className="text-xs text-zinc-500 mt-1">Knowledge Items</p>
               </div>
             </div>
           </div>
@@ -148,7 +148,7 @@ export default function IntelligencePage() {
                         <p className="text-sm text-zinc-400 mt-0.5">{p.description || p.title}</p>
                         <div className="flex items-center gap-3 mt-2 text-xs text-zinc-600">
                           <span>Pattern</span>
-                          {p.confidence && <span>Confidence: {Math.round(p.confidence * 100)}%</span>}
+                          {p.confidence && <span>Relevance: {Math.round(p.confidence * 100)}%</span>}
                           {p.timestamp && <span>{new Date(p.timestamp).toLocaleDateString()}</span>}
                         </div>
                       </div>
@@ -169,7 +169,7 @@ export default function IntelligencePage() {
                         <p className="text-sm text-zinc-400 mt-0.5">{i.description || i.title}</p>
                         <div className="flex items-center gap-3 mt-2 text-xs text-zinc-600">
                           <span>Insight</span>
-                          {i.confidence && <span>Confidence: {Math.round(i.confidence * 100)}%</span>}
+                          {i.confidence && <span>Relevance: {Math.round(i.confidence * 100)}%</span>}
                         </div>
                       </div>
                     </button>

@@ -612,7 +612,7 @@ class SpyralCognitiveCoreImpl {
     }
 
     if (input.agentType === "command") {
-      return `The user issued a command: "${input.input}". SPYRAL detected domain: ${intent.domain}, strategy: ${strategy}. Routing to the correct agent.`;
+      return `The user wants to: "${input.input}". This appears to be a ${intent.domain} question using a ${strategy} approach.`;
     }
 
     return `User input: "${input.input}". Intent: ${strategy} strategy in ${intent.domain} domain. Complexity: ${intent.complexity}. Depth: ${intent.reasoningDepth}.`;
@@ -1324,242 +1324,187 @@ class SpyralCognitiveCoreImpl {
     const mode = input.researchMode || "discovery";
 
     if (mode === "discovery") {
-      return `I understand you want to investigate: "${input.input}".
+      return `That's an interesting direction to explore.
 
-Let me share what I'm noticing as we begin this investigation together.
+There are a few ways we could approach this — what stands out to you most right now?
 
-**Observations:**
-• This is a rich area with several dimensions worth exploring
-• I want to separate what we know from what we assume
-
-**Key Questions I'm Considering:**
-• What do we already know about this?
-• What assumptions might we be making?
-• What would count as strong evidence?
-
-**Let's start simply:**
-Tell me more about what's driving your interest in this topic. What have you already observed or tried?\n\n${this.buildFollowUpQuestion(input)}`;
+${this.buildFollowUpQuestion(input)}`;
     }
 
     if (mode === "experiment") {
-      return `Let's design experiments to investigate: "${input.input}".
+      return `Let's design a way to test this.
 
-**Current Understanding:**
+A few things to consider as starting points:
 ${sve.assumptionsIdentified.slice(0, 2).map((a) => `• ${a}`).join("\n")}
 
-**Proposed Experiments:**
+And some experiments worth trying:
 ${sae.experiments.map((e) => `• ${e}`).join("\n")}
 
-**Before we proceed:**
-What specific hypothesis would you like to test first?`;
+Which hypothesis feels most worth testing first?`;
     }
 
     if (mode === "literature") {
-      return `Let me summarize what I know about: "${input.input}".
+      return `Here's what I know so far:
 
-**Available Knowledge:**
 ${ste.strategies.map((s) => `• ${s.title}: ${s.description.substring(0, 100)}...`).join("\n")}
 
-**Confidence in Current Knowledge:**
-${Math.round(sve.confidence * 100)}% — this is based on available patterns and memories.
-
-**To build a more complete picture:**
-What specific aspects are most important to you?`;
+What aspects of this are most important to explore further?`;
     }
 
     if (mode === "theory") {
-      return `Let's develop new theories around: "${input.input}".
+      return `Let's think about this from different angles.
 
-**Starting Assumptions:**
+Some assumptions worth examining:
 ${sve.assumptionsIdentified.map((a) => `• ${a}`).join("\n")}
 
-**Alternative Explanations:**
+Alternative ways to look at this:
 ${sve.alternativeExplanations.map((a) => `• ${a}`).join("\n")}
 
-**What if we considered:**
-${sve.alternativeExplanations[0] || "A completely different framing of this topic?"}
+What if we started from a completely different premise?
 
-What theoretical direction excites you most?`;
+What theoretical direction feels most promising to you?`;
     }
 
     if (mode === "report") {
-      return `I've analyzed "${input.input}" and prepared a structured report.
+      return `Here's what I'm seeing so far:
 
-**Executive Summary:**
-After thorough analysis, I've identified ${ste.strategies.length} strategic approaches with a confidence level of ${Math.round(sve.confidence * 100)}%.
+${ste.strategies.map((s, i) => `${i + 1}. ${s.title}: ${s.description.substring(0, 80)}...`).join("\n")}
 
-**Key Findings:**
-${ste.strategies.map((s, i) => `${i + 1}. ${s.title}: ${s.description.substring(0, 80)}... (${Math.round(s.probability * 100)}% probability)`).join("\n")}
+${ste.strategies[0]?.title ? `The initial direction that seems most worth pursuing: **${ste.strategies[0].title}**` : ""}
 
-**Recommendation:**
-${ste.strategies[0]?.title || "Proceed with investigation"}
-
-Would you like me to dive deeper into any specific area?`;
+Would you like to dive deeper into any of these?`;
     }
 
     if (mode === "debate") {
-      return `Let's examine "${input.input}" from multiple perspectives.
+      return `Let me play with some different perspectives on this.
 
-**Perspective 1 — Supporting View:**
+**One way to see it:**
 ${ste.strategies[0]?.advantages.join(", ") || "This approach has several benefits"}
 
-**Perspective 2 — Challenging View:**
+**Another way to see it:**
 ${ste.strategies[1]?.disadvantages.join(", ") || "There are also risks to consider"}
 
-**What's Missing:**
-${sve.missingEvidence.join("\n")}
+**What's missing from both views:**
+${sve.missingEvidence.slice(0, 2).join("\n")}
 
-**Let's debate:**
-What's the strongest argument against your current position on this topic?`;
+What's the strongest argument against your current position on this?`;
     }
 
-    return `Let's investigate: "${input.input}". What would you like to explore first?`;
+    return `That's worth investigating. What aspect would you like to explore first?`;
   }
 
   private buildContentResponse(input: ThinkInput, understanding: string, recommendation: string, intent: CognitiveIntent): string {
-    // ─── CREATION (PHASE F.1) ─────────────────────────────────────────────
-    // Think → Research → Strategy → Storyboard → Prompt Package → Generation
     const strategy = intent.reasoningStrategy;
 
     if (strategy === "creation") {
-      return `Let's think about "${input.input}" before we create anything.
+      return `Before we create anything, let's make sure I understand what you're going for.
 
-**Step 1 — Research:**
-${understanding}
+A great piece of content starts with clarity on a few things:
 
-**Step 2 — Strategy Considerations:**
-${recommendation}
+1. Who are we trying to reach?
+2. What platform or medium makes sense?
+3. What's the real goal — awareness, engagement, conversion, or something else?
+4. What tone or voice fits best?
 
-**Step 3 — Let's Build Your Brief:**
-Before I can produce a creative brief, storyboard, and prompt package, I need to understand:
-1. Who is the target audience?
-2. What platform or medium?
-3. What's the primary goal — awareness, engagement, conversion, or education?
-4. What tone or voice should we use?
-
-Once you share these, I'll develop a complete content strategy with:
-• Creative brief
-• Content storyboard
-• Hooks and angles
-• Production-ready prompts
-• Publishing plan`;
+Once you share those, I'll develop a full creative direction including brief, storyboard, hooks, and production-ready assets.`;
     }
 
-    return `Let me think about "${input.input}" before we create anything.
+    return `I want to make sure I get this right before we start creating.
 
-**What I'm Understanding:**
-${understanding}
+The most effective content starts with understanding the audience and the change we're trying to make.
 
-**Strategic Considerations:**
-• Before creating content, I need to understand your audience and positioning
-• The most effective content starts with strategy, not production
-• I'll recommend a full content package once I understand your goals
-
-**Let's start with a few questions:**
-1. Who is the target audience for this content?
+A few things that would help:
+1. Who is the target audience?
 2. What platform are you creating for?
 3. What's the primary goal — awareness, engagement, conversion, or education?
 
-Once you share these details, I'll develop a complete content strategy with creative brief, storyboard, hooks, and production-ready assets.`;
+Once you share these, I'll put together a complete content strategy with creative brief, storyboard, hooks, and production-ready assets.`;
   }
 
   private buildConsultantResponse(input: ThinkInput, ste: STEResult, sve: SVEResult, _sae: SAEResult, recommendation: string, intent: CognitiveIntent): string {
-    // ─── DECISION (PHASE F.1) ─────────────────────────────────────────────
-    // Challenge assumptions. Present multiple viewpoints. Explain consequences. Recommend a path.
     const strategy = intent.reasoningStrategy;
 
     if (strategy === "decision") {
-      return `Let me dig into your situation: "${input.input}"
+      return `This is a good situation to think through carefully.
 
-**What I'm Challenging:**
+**A few assumptions I'm questioning:**
 ${sve.assumptionsIdentified.map((a) => `• ${a}`).join("\n")}
 
-**Multiple Viewpoints to Consider:**
-${sve.alternativeExplanations.slice(0, 2).map((v, i) => `View ${i + 1}: ${v}`).join("\n")}
+**Worth considering from different angles:**
+${sve.alternativeExplanations.slice(0, 2).map((v, i) => `• ${v}`).join("\n")}
 
-**Trade-offs I See:**
-${ste.strategies.slice(0, 2).map((s) => `• ${s.title}: +${s.advantages.length} advantages, -${s.disadvantages.length} disadvantages (${Math.round(s.probability * 100)}% confidence)`).join("\n")}
+**Trade-offs I can see:**
+${ste.strategies.slice(0, 2).map((s) => `• ${s.title}: ${s.advantages.length} upsides, ${s.disadvantages.length} downsides to weigh`).join("\n")}
 
-**My Recommendation:**
+**What I'd recommend based on what I know:**
 ${recommendation}
 
-**Before I finalize — tell me more:**
+**But before we settle on that — tell me more:**
 ${this.buildConsultantFollowUp(input)}`;
     }
 
-    return `Let me analyze your situation: "${input.input}"
+    return `Let's think through this together.
 
-**Initial Diagnosis:**
-${ste.strategies.map((s) => `• Strategy: ${s.title} (${Math.round(s.probability * 100)}% confidence)`).join("\n")}
+**What I'm seeing:**
+${ste.strategies.map((s) => `• ${s.title}`).join("\n")}
 
-**What I'm Questioning:**
+**What I'm questioning:**
 ${sve.assumptionsIdentified.map((a) => `• ${a}`).join("\n")}
 
-**Alternative Framing:**
+**Another way to frame this:**
 ${sve.alternativeExplanations[0] || "Let me challenge how you're thinking about this."}
 
-**My Recommendation:**
-${recommendation}
+${recommendation ? `**A direction worth considering:**\n${recommendation}` : ""}
 
-**Before I build a full strategic roadmap, help me understand:**
+**To help me think with you more effectively:**
 ${this.buildConsultantFollowUp(input)}`;
   }
 
   private buildNavigationResponse(input: ThinkInput, ste: STEResult, sve: SVEResult, _sae: SAEResult, intent: CognitiveIntent): string {
-    // ─── PLANNING (PHASE F.1) ─────────────────────────────────────────────
-    // Guide from Current Reality → Desired Reality → Execution → Measurement → Adaptation
-    // Never stop at analysis.
     const strategy = intent.reasoningStrategy;
 
     if (strategy === "planning") {
-      return `Let's map out "${input.input}" from where you are to where you want to be.
+      return `Let's map out where you are and where you want to be.
 
-**Current Reality Analysis:**
+**What I'm noticing about your current situation:**
 ${ste.strategies.map((s, i) => `${i + 1}. ${s.title}`).join("\n")}
 
-**Gap I'm Seeing:**
+**Gaps worth thinking about:**
 ${sve.alternativeExplanations.slice(0, 2).map((g) => `• ${g}`).join("\n")}
 
-**Recommended Strategy:**
-${ste.strategies[0]?.title || "Structured navigation"} (${Math.round(sve.confidence * 100)}% confidence)
-
-**To build your complete reality cycle, I need to know:**
-• Where are you now (current reality)?
-• Where do you want to be (desired reality)?
-• What resources do you have available?
-
-Once I understand these, I'll build:
-✅ Milestone-based roadmap
-✅ Execution plan with timelines
-✅ Success metrics
-✅ Adaptation triggers`;
-    }
-
-    return `Let's navigate from your current reality to your desired reality regarding: "${input.input}"
-
-**Analysis:**
-${ste.strategies.map((s, i) => `${i + 1}. ${s.title} — ${s.description.substring(0, 80)}...`).join("\n")}
-
-**Recommended Path:**
+**A path worth considering:**
 ${ste.strategies[0]?.title || "Structured navigation"}
 
-**Confidence:**
-${Math.round(sve.confidence * 100)}%
+**To build a complete plan, it would help to know:**
+• Where are you starting from?
+• Where do you want to get to?
+• What resources do you have available?
 
-**To build your complete reality cycle, tell me:**
-• Where are you now (current reality)?
-• Where do you want to be (desired reality)?
+Once I understand those, I'll lay out a clear path forward with milestones, execution steps, and success metrics.`;
+    }
+
+    return `Let's figure out the path from where you are to where you want to be.
+
+**What I'm seeing:**
+${ste.strategies.map((s, i) => `${i + 1}. ${s.title} — ${s.description.substring(0, 80)}...`).join("\n")}
+
+**The direction that stands out most:**
+${ste.strategies[0]?.title || "Structured navigation"}
+
+**To build your full plan, tell me:**
+• Where are you now?
+• Where do you want to be?
 • What's the gap between them?`;
   }
 
   private buildGenericResponse(input: ThinkInput, understanding: string, recommendation: string, _sae: SAEResult, intent: CognitiveIntent): string {
     const strategy = intent.reasoningStrategy;
     if (strategy === "discovery") {
-      return `Let's explore "${input.input}" together.
+      return `Let's explore this together.
 
 ${understanding}
 
-**My role here is to investigate with you — not to give you a finished answer.**
+I'm here to investigate with you — not to give you a finished answer.
 
 What's the first thread you'd like to pull?`;
     }

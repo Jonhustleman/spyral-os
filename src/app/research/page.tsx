@@ -37,7 +37,7 @@ export default function ResearchAgentPage() {
     {
       id: "welcome",
       role: "agent",
-      content: "I'm your SPYRAL Research Partner.\n\nWe are not searching for answers.\nWe are discovering them together.\n\nTell me — what would you like to investigate?",
+      content: "I'm your research partner — not an answer machine.\n\nLet's explore ideas, challenge assumptions, and discover what's really going on.\n\nWhat would you like to investigate together?",
       timestamp: new Date(),
     },
   ]);
@@ -88,7 +88,7 @@ export default function ResearchAgentPage() {
       {
         id: "welcome",
         role: "agent",
-        content: "I'm your SPYRAL Research Partner.\n\nWe are not searching for answers.\nWe are discovering them together.\n\nTell me — what would you like to investigate?",
+        content: "I'm your research partner — not an answer machine.\n\nLet's explore ideas, challenge assumptions, and discover what's really going on.\n\nWhat would you like to investigate together?",
         timestamp: new Date(),
       },
       {
@@ -100,7 +100,7 @@ export default function ResearchAgentPage() {
       {
         id: `agent-${inv.timestamp}`,
         role: "agent",
-        content: `Here's what I've discovered so far about: **${inv.question}**\n\n**Hypotheses:**\n${inv.hypotheses.map(h => `• ${h}`).join('\n')}\n\n**Evidence Found:**\n${inv.evidence.map(e => `• ${e}`).join('\n')}\n\n**What we still don't know:**\n${inv.unknowns.map(u => `• ${u}`).join('\n')}\n\n**Something to try:**\n${inv.experiments.map(e => `• ${e}`).join('\n')}\n\n**A question that follows from this:**\n${inv.followUp}`,
+        content: `Here's what I've found so far about **${inv.question}**:\n\n**Ideas worth exploring:**\n${inv.hypotheses.map(h => `• ${h}`).join('\n')}\n\n**What we've learned:**\n${inv.evidence.map(e => `• ${e}`).join('\n')}\n\n**What we still don't know:**\n${inv.unknowns.map(u => `• ${u}`).join('\n')}\n\n**Something to try next:**\n${inv.experiments.map(e => `• ${e}`).join('\n')}\n\n**A question that follows from this:**\n${inv.followUp}`,
         timestamp: new Date(inv.timestamp),
       },
     ]);

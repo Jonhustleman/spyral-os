@@ -124,7 +124,7 @@ export default function ContentAgentPage() {
     {
       id: "welcome",
       role: "agent",
-      content: "Let's start with three questions before we create anything.\n\n**What change are we trying to create?**\n**Who needs to change?**\n**Why aren't they changing today?**\n\nTell me about the shift you want to make — and I'll help you craft the content to make it happen.",
+      content: "I'm your creative director. Before we make anything, let's understand what we're trying to achieve.\n\n**What change are we trying to create?**\n**Who needs to change?**\n**Why aren't they changing today?**\n\nTell me about the shift you want to make.",
       timestamp: new Date(),
     },
   ]);
@@ -167,7 +167,7 @@ export default function ContentAgentPage() {
       {
         id: "welcome",
         role: "agent",
-        content: "Let's start with three questions before we create anything.\n\n**What change are we trying to create?**\n**Who needs to change?**\n**Why aren't they changing today?**\n\nTell me about the shift you want to make — and I'll help you craft the content to make it happen.",
+        content: "I'm your creative director. Before we make anything, let's understand what we're trying to achieve.\n\n**What change are we trying to create?**\n**Who needs to change?**\n**Why aren't they changing today?**\n\nTell me about the shift you want to make.",
         timestamp: new Date(),
       },
       {
@@ -225,7 +225,7 @@ export default function ContentAgentPage() {
     const agentMsg: Message = {
       id: `agent-${Date.now()}`,
       role: "agent",
-      content: cognitive.response + "\n\nI've prepared a complete content package below with creative brief, storyboard, hooks, and production-ready assets.",
+      content: cognitive.response + "\n\nI've put together a full creative direction below — brief, storyboard, hooks, and production notes.",
       timestamp: new Date(),
     };
 

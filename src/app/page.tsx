@@ -383,7 +383,7 @@ export default function HomePage() {
         <div className="max-w-5xl mx-auto">
           <div className="flex items-center gap-2 mb-5">
             <Layers className="h-4 w-4 text-zinc-600" />
-            <h2 className="text-sm font-medium text-zinc-500 uppercase tracking-wider">Capabilities</h2>
+            <h2 className="text-sm font-medium text-zinc-500 uppercase tracking-wider">How can I help you today?</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {AGENT_CARDS.map((card, i) => (

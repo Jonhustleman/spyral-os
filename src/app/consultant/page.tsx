@@ -179,7 +179,7 @@ export default function ConsultantAgentPage() {
     {
       id: "welcome",
       role: "agent",
-      content: "I'm your thinking partner. I'm here to challenge your assumptions, offer competing viewpoints, and help you see what you might be missing.\n\nI don't generate reports unless you ask me to. Instead, let's talk through your situation.\n\nWhat's on your mind?",
+      content: "I'm your thinking partner. I'm here to challenge your assumptions, offer competing viewpoints, and help you see what you might be missing.\n\nI don't write reports unless you ask. Let's talk through your situation instead.\n\nWhat's on your mind?",
       timestamp: new Date(),
     },
   ]);
