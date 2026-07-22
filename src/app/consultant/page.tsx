@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Send, FileText, Activity, Search, Target, AlertTriangle, TrendingUp, Zap, Calendar, ArrowRight, ChevronDown, ChevronUp, Copy, Check, Download, Home } from "lucide-react";
+import { Send, FileText, Activity, Search, Target, AlertTriangle, TrendingUp, Zap, Calendar, ArrowRight, ChevronDown, ChevronUp, Copy, Check, Download, Home, Clock, ClipboardList, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // ─── Message types ─────────────────────────────────────────────────────────
@@ -177,13 +177,15 @@ export default function ConsultantAgentPage() {
     {
       id: "welcome",
       role: "agent",
-      content: "Tell me about your situation. I'm here to help you think through challenges, identify opportunities, and build a strategic path forward.",
+      content: "What challenge are we solving today?\n\nI'm your SPYRAL Strategic Advisor. I'll challenge assumptions, identify blind spots, explain tradeoffs, and help you make better decisions.\n\nShare your situation — business, career, product, or personal — and I'll provide an executive-level analysis.",
       timestamp: new Date(),
     },
   ]);
   const [report, setReport] = useState<ConsultantReport | null>(null);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [savedSessions, setSavedSessions] = useState<{ prompt: string; timestamp: string }[]>([]);
+  const [showSessions, setShowSessions] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const toggleSection = (key: string) => {
@@ -195,6 +197,37 @@ export default function ConsultantAgentPage() {
       await navigator.clipboard.writeText(text);
       setCopiedField(field);
       setTimeout(() => setCopiedField(null), 2000);
+    } catch {}
+  };
+
+  // Load saved sessions on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("spyral_consultant_sessions");
+      if (saved) setSavedSessions(JSON.parse(saved));
+    } catch {}
+  }, []);
+
+  // Save session after generating a report
+  const saveSession = (prompt: string) => {
+    const session = { prompt, timestamp: new Date().toISOString() };
+    const updated = [session, ...savedSessions.filter(s => s.prompt !== prompt)].slice(0, 20);
+    setSavedSessions(updated);
+    try {
+      localStorage.setItem("spyral_consultant_sessions", JSON.stringify(updated));
+    } catch {}
+  };
+
+  const loadSession = (sessionPrompt: string) => {
+    setPrompt(sessionPrompt);
+    setShowSessions(false);
+  };
+
+  const deleteSession = (timestamp: string) => {
+    const updated = savedSessions.filter(s => s.timestamp !== timestamp);
+    setSavedSessions(updated);
+    try {
+      localStorage.setItem("spyral_consultant_sessions", JSON.stringify(updated));
     } catch {}
   };
 
@@ -225,6 +258,7 @@ export default function ConsultantAgentPage() {
     };
 
     setMessages((prev) => [...prev, agentMsg]);
+    saveSession(prompt);
     setPrompt("");
   };
 
@@ -389,15 +423,64 @@ export default function ConsultantAgentPage() {
               <p className="text-xs text-zinc-500">SPYRAL Elite Strategic Advisor</p>
             </div>
           </div>
-          <Link
-            href="/"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-800 bg-zinc-900/40 text-zinc-400 hover:text-white hover:bg-zinc-800/60 hover:border-zinc-700 transition-all text-sm"
-          >
-            <Home className="h-4 w-4" />
-            Home
-          </Link>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowSessions(!showSessions)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-800 bg-zinc-900/40 text-zinc-400 hover:text-white hover:bg-zinc-800/60 hover:border-zinc-700 transition-all text-sm"
+            >
+              <ClipboardList className="h-4 w-4" />
+              Sessions
+              {savedSessions.length > 0 && (
+                <span className="text-xs bg-zinc-700 text-zinc-300 px-1.5 py-0.5 rounded-full">{savedSessions.length}</span>
+              )}
+            </button>
+            <Link
+              href="/"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-800 bg-zinc-900/40 text-zinc-400 hover:text-white hover:bg-zinc-800/60 hover:border-zinc-700 transition-all text-sm"
+            >
+              <Home className="h-4 w-4" />
+              Home
+            </Link>
+          </div>
         </div>
       </div>
+
+      {/* Sessions panel */}
+      {showSessions && (
+        <div className="border-b border-zinc-800 px-6 py-3 bg-zinc-900/60">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-medium text-zinc-400 uppercase tracking-wider">Saved Sessions ({savedSessions.length})</span>
+            <button
+              onClick={() => setShowSessions(false)}
+              className="text-xs text-zinc-600 hover:text-zinc-400"
+            >
+              Close
+            </button>
+          </div>
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {savedSessions.length === 0 ? (
+              <p className="text-xs text-zinc-600 py-2">No saved sessions yet</p>
+            ) : (
+              savedSessions.map((session) => (
+                <div
+                  key={session.timestamp}
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg bg-zinc-800/50 border border-zinc-700/50 shrink-0 cursor-pointer hover:bg-zinc-700/50 transition-colors group"
+                  onClick={() => loadSession(session.prompt)}
+                >
+                  <Clock className="h-3 w-3 text-zinc-500 shrink-0" />
+                  <span className="text-xs text-zinc-300 truncate max-w-[200px]">{session.prompt}</span>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); deleteSession(session.timestamp); }}
+                    className="text-zinc-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all shrink-0"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">

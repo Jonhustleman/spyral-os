@@ -111,6 +111,32 @@ function generateReport(topic: string): ResearchReport {
   };
 }
 
+// ─── Session management ──────────────────────────────────────────────────────
+
+type ResearchSession = {
+  id: string;
+  topic: string;
+  report: ResearchReport;
+  timestamp: number;
+};
+
+const SESSIONS_KEY = "spyral-research-sessions";
+
+function loadSessions(): ResearchSession[] {
+  try {
+    const raw = localStorage.getItem(SESSIONS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveSession(session: ResearchSession) {
+  const sessions = loadSessions();
+  sessions.unshift(session);
+  localStorage.setItem(SESSIONS_KEY, JSON.stringify(sessions.slice(0, 20)));
+}
+
 // ─── Research Agent Page ────────────────────────────────────────────────────
 
 export default function ResearchAgentPage() {
@@ -119,10 +145,12 @@ export default function ResearchAgentPage() {
     {
       id: "welcome",
       role: "agent",
-      content: "What would you like to investigate?",
+      content: "I'm your SPYRAL Research Partner. We'll investigate together. Challenge assumptions. Discover hidden structures. Generate hypotheses. Validate evidence. What would you like to investigate?",
       timestamp: new Date(),
     },
   ]);
+  const [savedSessions, setSavedSessions] = useState<ResearchSession[]>([]);
+  const [showSessions, setShowSessions] = useState(false);
   const [report, setReport] = useState<ResearchReport | null>(null);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
   const [copiedField, setCopiedField] = useState<string | null>(null);
@@ -141,8 +169,37 @@ export default function ResearchAgentPage() {
   };
 
   useEffect(() => {
+    setSavedSessions(loadSessions());
+  }, []);
+
+  useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  const loadSavedSession = (session: ResearchSession) => {
+    setReport(session.report);
+    setMessages([
+      {
+        id: "welcome",
+        role: "agent",
+        content: `I'm your SPYRAL Research Partner. We'll investigate together. Challenge assumptions. Discover hidden structures. Generate hypotheses. Validate evidence. What would you like to investigate?`,
+        timestamp: new Date(),
+      },
+      {
+        id: `user-${session.timestamp}`,
+        role: "user",
+        content: session.topic,
+        timestamp: new Date(session.timestamp),
+      },
+      {
+        id: `agent-${session.timestamp}`,
+        role: "agent",
+        content: `I've completed the research on "${session.topic}". Here's a structured report with findings, analysis, and recommendations.`,
+        timestamp: new Date(session.timestamp),
+      },
+    ]);
+    setShowSessions(false);
+  };
 
   const handleSubmit = () => {
     if (!prompt.trim()) return;
@@ -158,6 +215,16 @@ export default function ResearchAgentPage() {
 
     const r = generateReport(prompt);
     setReport(r);
+
+    // Auto-save session
+    const session: ResearchSession = {
+      id: `session-${Date.now()}`,
+      topic: prompt,
+      report: r,
+      timestamp: Date.now(),
+    };
+    saveSession(session);
+    setSavedSessions(loadSessions());
 
     const agentMsg: Message = {
       id: `agent-${Date.now()}`,
@@ -316,15 +383,49 @@ export default function ResearchAgentPage() {
               <p className="text-xs text-zinc-500">SPYRAL AI Research & Intelligence</p>
             </div>
           </div>
-          <Link
-            href="/"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-800 bg-zinc-900/40 text-zinc-400 hover:text-white hover:bg-zinc-800/60 hover:border-zinc-700 transition-all text-sm"
-          >
-            <Home className="h-4 w-4" />
-            Home
-          </Link>
+          <div className="flex items-center gap-2">
+            {savedSessions.length > 0 && (
+              <button
+                onClick={() => setShowSessions(!showSessions)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-800 bg-zinc-900/40 text-zinc-400 hover:text-white hover:bg-zinc-800/60 hover:border-zinc-700 transition-all text-sm"
+              >
+                <ClipboardList className="h-4 w-4" />
+                Sessions ({savedSessions.length})
+              </button>
+            )}
+            <Link
+              href="/"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-800 bg-zinc-900/40 text-zinc-400 hover:text-white hover:bg-zinc-800/60 hover:border-zinc-700 transition-all text-sm"
+            >
+              <Home className="h-4 w-4" />
+              Home
+            </Link>
+          </div>
         </div>
       </div>
+
+      {/* Sessions Panel */}
+      {showSessions && savedSessions.length > 0 && (
+        <div className="border-b border-zinc-800 bg-zinc-900/30 px-6 py-4">
+          <div className="max-w-3xl mx-auto">
+            <h3 className="text-xs font-medium text-zinc-500 mb-3 uppercase tracking-wider">Saved Research Sessions</h3>
+            <div className="space-y-2 max-h-48 overflow-y-auto">
+              {savedSessions.map((session) => (
+                <button
+                  key={session.id}
+                  onClick={() => loadSavedSession(session)}
+                  className="w-full text-left p-3 rounded-lg border border-zinc-800 bg-zinc-900/40 hover:bg-zinc-800/40 transition-colors"
+                >
+                  <p className="text-sm font-medium text-white truncate">{session.topic}</p>
+                  <p className="text-xs text-zinc-500 mt-0.5">
+                    {new Date(session.timestamp).toLocaleDateString()} · Confidence: {session.report.confidenceScore}
+                  </p>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">

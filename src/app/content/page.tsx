@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { ProviderManager, type ProviderType } from "@/features/providers";
 import { Sparkles, Send, FileText, Image, Music, Film, Share2, Download, ChevronDown, ChevronUp, Copy, Check, Home } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -86,6 +87,32 @@ function generateContentPackage(prompt: string): ContentPackage {
   };
 }
 
+// ─── Session management ─────────────────────────────────────────────────────
+
+type ContentSession = {
+  id: string;
+  topic: string;
+  package: ContentPackage;
+  timestamp: number;
+};
+
+const CONTENT_SESSIONS_KEY = "spyral-content-sessions";
+
+function loadContentSessions(): ContentSession[] {
+  try {
+    const raw = localStorage.getItem(CONTENT_SESSIONS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveContentSession(session: ContentSession) {
+  const sessions = loadContentSessions();
+  sessions.unshift(session);
+  localStorage.setItem(CONTENT_SESSIONS_KEY, JSON.stringify(sessions.slice(0, 20)));
+}
+
 // ─── Content Agent Page ─────────────────────────────────────────────────────
 
 export default function ContentAgentPage() {
@@ -101,6 +128,9 @@ export default function ContentAgentPage() {
   const [package_, setPackage] = useState<ContentPackage | null>(null);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [savedSessions, setSavedSessions] = useState<ContentSession[]>([]);
+  const [showSessions, setShowSessions] = useState(false);
+  const [showProviderModal, setShowProviderModal] = useState<ProviderType | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -117,8 +147,37 @@ export default function ContentAgentPage() {
   };
 
   useEffect(() => {
+    setSavedSessions(loadContentSessions());
+  }, []);
+
+  useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  const loadSavedContentSession = (session: ContentSession) => {
+    setPackage(session.package);
+    setMessages([
+      {
+        id: "welcome",
+        role: "agent",
+        content: "What would you like to create today?",
+        timestamp: new Date(),
+      },
+      {
+        id: `user-${session.timestamp}`,
+        role: "user",
+        content: session.topic,
+        timestamp: new Date(session.timestamp),
+      },
+      {
+        id: `agent-${session.timestamp}`,
+        role: "agent",
+        content: `I've created a complete content package for "${session.topic}". Here's everything you need to produce and publish.`,
+        timestamp: new Date(session.timestamp),
+      },
+    ]);
+    setShowSessions(false);
+  };
 
   const handleSubmit = () => {
     if (!prompt.trim()) return;
@@ -135,6 +194,16 @@ export default function ContentAgentPage() {
     // Generate content package
     const pkg = generateContentPackage(prompt);
     setPackage(pkg);
+
+    // Auto-save session
+    const session: ContentSession = {
+      id: `content-${Date.now()}`,
+      topic: prompt,
+      package: pkg,
+      timestamp: Date.now(),
+    };
+    saveContentSession(session);
+    setSavedSessions(loadContentSessions());
 
     const agentMsg: Message = {
       id: `agent-${Date.now()}`,
@@ -350,15 +419,49 @@ export default function ContentAgentPage() {
               <p className="text-xs text-zinc-500">SPYRAL AI Content Creator</p>
             </div>
           </div>
-          <Link
-            href="/"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-800 bg-zinc-900/40 text-zinc-400 hover:text-white hover:bg-zinc-800/60 hover:border-zinc-700 transition-all text-sm"
-          >
-            <Home className="h-4 w-4" />
-            Home
-          </Link>
+          <div className="flex items-center gap-2">
+            {savedSessions.length > 0 && (
+              <button
+                onClick={() => setShowSessions(!showSessions)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-800 bg-zinc-900/40 text-zinc-400 hover:text-white hover:bg-zinc-800/60 hover:border-zinc-700 transition-all text-sm"
+              >
+                <FileText className="h-4 w-4" />
+                Sessions ({savedSessions.length})
+              </button>
+            )}
+            <Link
+              href="/"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-800 bg-zinc-900/40 text-zinc-400 hover:text-white hover:bg-zinc-800/60 hover:border-zinc-700 transition-all text-sm"
+            >
+              <Home className="h-4 w-4" />
+              Home
+            </Link>
+          </div>
         </div>
       </div>
+
+      {/* Sessions Panel */}
+      {showSessions && savedSessions.length > 0 && (
+        <div className="border-b border-zinc-800 bg-zinc-900/30 px-6 py-4">
+          <div className="max-w-3xl mx-auto">
+            <h3 className="text-xs font-medium text-zinc-500 mb-3 uppercase tracking-wider">Saved Content Sessions</h3>
+            <div className="space-y-2 max-h-48 overflow-y-auto">
+              {savedSessions.map((session) => (
+                <button
+                  key={session.id}
+                  onClick={() => loadSavedContentSession(session)}
+                  className="w-full text-left p-3 rounded-lg border border-zinc-800 bg-zinc-900/40 hover:bg-zinc-800/40 transition-colors"
+                >
+                  <p className="text-sm font-medium text-white truncate">{session.topic}</p>
+                  <p className="text-xs text-zinc-500 mt-0.5">
+                    {new Date(session.timestamp).toLocaleDateString()}
+                  </p>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
@@ -418,30 +521,65 @@ export default function ContentAgentPage() {
               );
             })}
 
-            {/* Export options */}
-            <div className="flex items-center gap-2 pt-2">
-              <button
-                onClick={() => {
-                  const text = sections.map(s => `${s.label}\n${s.content?.props?.children || ''}`).join('\n\n');
-                  copyToClipboard(text, "export-all");
-                }}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-zinc-800 text-zinc-300 text-xs hover:bg-zinc-700 transition-colors"
-              >
-                <Download className="h-3.5 w-3.5" />
-                Export All
-              </button>
-              <button
-                onClick={() => copyToClipboard(JSON.stringify(package_, null, 2), "export-json")}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-zinc-800 text-zinc-300 text-xs hover:bg-zinc-700 transition-colors"
-              >
-                <Copy className="h-3.5 w-3.5" />
-                Copy JSON
-              </button>
-              {copiedField === "export-all" && <span className="text-xs text-green-400">Copied!</span>}
-              {copiedField === "export-json" && <span className="text-xs text-green-400">Copied!</span>}
+            {/* Generation actions */}
+            <div className="pt-4 space-y-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs text-zinc-500 font-medium uppercase tracking-wider mr-1">Generate:</span>
+                <button
+                  onClick={() => setShowProviderModal("image")}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-purple-500/10 border border-purple-500/20 text-purple-300 text-xs hover:bg-purple-500/20 transition-colors"
+                >
+                  <Image className="h-3.5 w-3.5" />
+                  Images
+                </button>
+                <button
+                  onClick={() => setShowProviderModal("video")}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs hover:bg-amber-500/20 transition-colors"
+                >
+                  <Film className="h-3.5 w-3.5" />
+                  Videos
+                </button>
+                <button
+                  onClick={() => setShowProviderModal("voice")}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs hover:bg-emerald-500/20 transition-colors"
+                >
+                  <Music className="h-3.5 w-3.5" />
+                  Voice
+                </button>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  onClick={() => {
+                    const text = sections.map(s => `${s.label}\n${s.content?.props?.children || ''}`).join('\n\n');
+                    copyToClipboard(text, "export-all");
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-zinc-800 text-zinc-300 text-xs hover:bg-zinc-700 transition-colors"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  Export Prompt Package
+                </button>
+                <button
+                  onClick={() => copyToClipboard(JSON.stringify(package_, null, 2), "export-json")}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-zinc-800 text-zinc-300 text-xs hover:bg-zinc-700 transition-colors"
+                >
+                  <Copy className="h-3.5 w-3.5" />
+                  Copy JSON
+                </button>
+                {copiedField === "export-all" && <span className="text-xs text-green-400">Copied!</span>}
+                {copiedField === "export-json" && <span className="text-xs text-green-400">Copied!</span>}
+              </div>
             </div>
           </div>
         </div>
+      )}
+
+      {/* Provider Manager Modal */}
+      {showProviderModal && package_ && (
+        <ProviderManager
+          type={showProviderModal}
+          prompt={JSON.stringify(package_, null, 2)}
+          onClose={() => setShowProviderModal(null)}
+        />
       )}
 
       {/* Input area */}
