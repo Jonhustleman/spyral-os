@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -29,7 +29,11 @@ export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const [showWizard, setShowWizard] = useState(false);
-  const user = AuthStore.getUser();
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    setUser(AuthStore.getUser());
+  }, []);
 
   const handleLogout = () => {
     AuthStore.logout();
