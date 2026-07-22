@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { ThinkingIndicator } from "@/components/ThinkingIndicator";
 import Link from "next/link";
-import { Send, Lightbulb, ChevronDown, ChevronUp, Copy, Check, Home, FlaskConical, Search, HelpCircle, ListChecks, Clock } from "lucide-react";
+import { Send, Home, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SpyralCognitiveCore } from "@/core";
 import { SpyralSession } from "@/features/session";
@@ -43,23 +43,8 @@ export default function ResearchAgentPage() {
   ]);
   const [investigations, setInvestigations] = useState<InvestigationItem[]>([]);
   const [showInvestigations, setShowInvestigations] = useState(false);
-  const [currentInvestigation, setCurrentInvestigation] = useState<InvestigationItem | null>(null);
-  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
-  const [copiedField, setCopiedField] = useState<string | null>(null);
   const [isThinking, setIsThinking] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  const toggleSection = (key: string) => {
-    setExpandedSections((prev) => ({ ...prev, [key]: !prev[key] }));
-  };
-
-  const copyToClipboard = async (text: string, field: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopiedField(field);
-      setTimeout(() => setCopiedField(null), 2000);
-    } catch {}
-  };
 
   // Load past investigations from SpyralSession
   useEffect(() => {
@@ -83,7 +68,6 @@ export default function ResearchAgentPage() {
   }, [messages]);
 
   const loadInvestigation = (inv: InvestigationItem) => {
-    setCurrentInvestigation(inv);
     setMessages([
       {
         id: "welcome",
@@ -95,12 +79,6 @@ export default function ResearchAgentPage() {
         id: `user-${inv.timestamp}`,
         role: "user",
         content: inv.question,
-        timestamp: new Date(inv.timestamp),
-      },
-      {
-        id: `agent-${inv.timestamp}`,
-        role: "agent",
-        content: `Here's what I've found so far about **${inv.question}**:\n\n**Ideas worth exploring:**\n${inv.hypotheses.map(h => `• ${h}`).join('\n')}\n\n**What we've learned:**\n${inv.evidence.map(e => `• ${e}`).join('\n')}\n\n**What we still don't know:**\n${inv.unknowns.map(u => `• ${u}`).join('\n')}\n\n**Something to try next:**\n${inv.experiments.map(e => `• ${e}`).join('\n')}\n\n**A question that follows from this:**\n${inv.followUp}`,
         timestamp: new Date(inv.timestamp),
       },
     ]);
@@ -151,8 +129,6 @@ export default function ResearchAgentPage() {
       timestamp: Date.now(),
     };
 
-    setCurrentInvestigation(inv);
-
     // Auto-save to SpyralSession
     SpyralSession.init();
     SpyralSession.startInvestigation(prompt, `Research: ${prompt.slice(0, 60)}`);
@@ -186,36 +162,6 @@ export default function ResearchAgentPage() {
       handleSubmit();
     }
   };
-
-  // Investigation sections
-  const investigationSections = currentInvestigation
-    ? [
-        {
-          key: "hypotheses",
-          label: "Hypotheses",
-          icon: Lightbulb,
-          items: currentInvestigation.hypotheses,
-        },
-        {
-          key: "evidence",
-          label: "Evidence Found",
-          icon: ListChecks,
-          items: currentInvestigation.evidence,
-        },
-        {
-          key: "unknowns",
-          label: "What We Still Don't Know",
-          icon: HelpCircle,
-          items: currentInvestigation.unknowns,
-        },
-        {
-          key: "experiments",
-          label: "Next Steps to Explore",
-          icon: FlaskConical,
-          items: currentInvestigation.experiments,
-        },
-      ]
-    : [];
 
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden">
@@ -279,65 +225,6 @@ export default function ResearchAgentPage() {
         ))}
         <div ref={messagesEndRef} />
       </div>
-
-      {/* Investigation Panel — replaces the cognitive pipeline */}
-      {currentInvestigation && (
-        <div className="border-t border-zinc-800 px-6 py-4 overflow-y-auto max-h-[45vh]">
-          <div className="max-w-3xl mx-auto space-y-2">
-            {/* Investigation header */}
-            <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-zinc-800 bg-zinc-900/50 mb-2">
-              <Search className="h-4 w-4 text-blue-400" />
-              <span className="text-sm font-medium text-zinc-300 flex-1 truncate">
-                Investigating: {currentInvestigation.question}
-              </span>
-              <button
-                onClick={() => copyToClipboard(currentInvestigation.question, "question")}
-                className="text-zinc-600 hover:text-zinc-300 transition-colors"
-              >
-                {copiedField === "question" ? <Check className="h-3.5 w-3.5 text-green-400" /> : <Copy className="h-3.5 w-3.5" />}
-              </button>
-            </div>
-
-            {/* Investigation Sections */}
-            {investigationSections.map((section) => {
-              const Icon = section.icon;
-              const isOpen = expandedSections[section.key] ?? true;
-              return (
-                <div key={section.key} className="rounded-lg border border-zinc-800 bg-zinc-900/30 overflow-hidden">
-                  <button
-                    onClick={() => toggleSection(section.key)}
-                    className="w-full flex items-center justify-between px-4 py-2.5 text-sm font-medium text-zinc-300 hover:text-white hover:bg-zinc-800/30 transition-colors"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Icon className="h-4 w-4 text-zinc-500" />
-                      <span>{section.label}</span>
-                    </div>
-                    {isOpen ? <ChevronUp className="h-4 w-4 text-zinc-600" /> : <ChevronDown className="h-4 w-4 text-zinc-600" />}
-                  </button>
-                  {isOpen && section.items.length > 0 && (
-                    <div className="px-4 pb-3 space-y-1.5">
-                      {section.items.map((item: string, i: number) => (
-                        <div key={i} className="flex items-start gap-2 p-2 rounded-lg bg-zinc-900/30 border border-zinc-800/50 text-sm text-zinc-300">
-                          <span className="text-zinc-600 mt-0.5 shrink-0" >•</span>
-                          <span>{item}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-
-            {/* Follow-up question */}
-            {currentInvestigation.followUp && (
-              <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-blue-500/20 bg-blue-500/5">
-                <HelpCircle className="h-4 w-4 text-blue-400 shrink-0" />
-                <p className="text-sm text-blue-300/80">{currentInvestigation.followUp}</p>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* Thinking indicator */}
       {isThinking && (
