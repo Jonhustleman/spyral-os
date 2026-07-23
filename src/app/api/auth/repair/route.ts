@@ -35,7 +35,7 @@ export async function POST(request: Request) {
     }
 
     const normalizedEmail = email.trim().toLowerCase();
-    const record = findByEmail(normalizedEmail);
+    const record = await findByEmail(normalizedEmail);
 
     if (!record) {
       return NextResponse.json(
@@ -73,7 +73,7 @@ export async function POST(request: Request) {
     if (repairs.length > 0) {
       try {
         const { saveUser } = await import("../_store");
-        saveUser(normalizedEmail, record);
+        await saveUser(normalizedEmail, record);
       } catch (err) {
         console.error("[auth/repair] Failed to save repairs:", err);
         return NextResponse.json(

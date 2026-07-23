@@ -38,7 +38,7 @@ export async function GET(request: Request) {
   if (token) {
     const payload = verifyToken(token);
     if (payload) {
-      const record = findByEmail(payload.email);
+      const record = await findByEmail(payload.email);
       diagnostics.checks = {
         ...diagnostics.checks as Record<string, unknown>,
         "✓ Token Found": `Valid token for ${payload.email}. Expires: ${new Date(payload.exp).toISOString()}`,

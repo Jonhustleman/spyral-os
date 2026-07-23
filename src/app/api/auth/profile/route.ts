@@ -23,7 +23,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Invalid or expired token." }, { status: 401 });
     }
 
-    const record = findByEmail(payload.email);
+    const record = await findByEmail(payload.email);
     if (!record) {
       return NextResponse.json({ error: "User not found." }, { status: 404 });
     }
@@ -51,7 +51,7 @@ export async function PUT(request: Request) {
     }
 
     const { name, avatar } = await request.json();
-    const updated = updateUser(payload.email, { name, avatar });
+    const updated = await updateUser(payload.email, { name, avatar });
 
     if (!updated) {
       return NextResponse.json({ error: "User not found." }, { status: 404 });

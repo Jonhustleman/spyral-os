@@ -49,7 +49,7 @@ export async function GET(request: Request) {
     // Attempt to fetch latest user data from store
     // If the store is unavailable (e.g., Vercel /tmp/ was cleared), fall back
     // to the token payload — the token itself is authoritative.
-    const record = findByEmail(payload.email);
+    const record = await findByEmail(payload.email);
 
     if (record) {
       // User found in store — return latest data

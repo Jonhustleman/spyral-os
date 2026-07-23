@@ -18,7 +18,7 @@ export async function POST(request: Request) {
     }
 
     const normalizedEmail = email.trim().toLowerCase();
-    const record = findByEmail(normalizedEmail);
+    const record = await findByEmail(normalizedEmail);
 
     if (!record) {
       return NextResponse.json(

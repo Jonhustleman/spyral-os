@@ -1,22 +1,34 @@
 /**
  * Auth Store — Server-side user persistence.
  *
- * Uses a JSON file for development (persists across server restarts).
- * On Vercel, uses /tmp/spyral-data/ (writable across same-instance requests).
+ * Two backends:
+ *   1. Upstash Redis (production) — used when UPSTASH_REDIS_REST_URL is set
+ *   2. JSON file (local development) — used otherwise
  *
- * Designed to be swapped for Vercel KV / Supabase / Firebase in production
- * without changing the API route handlers.
+ * The Redis backend is the recommended production storage because:
+ *   - File system (/tmp/) on Vercel serverless is ephemeral
+ *   - Redis persists across all serverless invocations
+ *   - Fast, serverless-optimized REST API
+ *
+ * To set up Redis for production:
+ *   1. Add a Redis database from Vercel Marketplace (Upstash Redis)
+ *   2. The environment variables (UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN)
+ *      are automatically injected by Vercel
+ *   3. No code changes needed — auto-detected at runtime
  *
  * The store interface is minimal so an adapter can be written for any backend:
  *   - findByEmail(email) → UserRecord | null
  *   - saveUser(email, record) → void
  *   - deleteUser(email) → void
  *   - updateUser(email, changes) → StoredUser | null
+ *
+ * All functions are async — they use Redis when available, file system otherwise.
  */
 
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import type { Redis } from "@upstash/redis";
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -34,15 +46,36 @@ export interface UserRecord {
   user: StoredUser;
 }
 
+// ─── Redis Client (lazy init) ──────────────────────────────────────────────
+// Upstash Redis uses a REST API — ideal for serverless (no persistent connection).
+
+let redisClient: Redis | null = null;
+
+function getRedisClient() {
+  if (redisClient) return redisClient;
+
+  const url = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_URL || "";
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN || "";
+
+  if (!url || !token) return null;
+
+  // Dynamic import — client is only loaded when Redis is actually configured
+  const { Redis } = require("@upstash/redis") as typeof import("@upstash/redis");
+  redisClient = new Redis({ url, token });
+  return redisClient;
+}
+
 // ─── Storage Backend ───────────────────────────────────────────────────────
-// On Vercel, use /tmp/ (the only writable directory).
-// On local, use .data/ in the project root.
+// File system fallback for local development.
 
 const IS_VERCEL = process.env.VERCEL === "1";
 const DATA_DIR = IS_VERCEL
   ? "/tmp/spyral-data"
   : path.join(process.cwd(), ".data");
 const USERS_FILE = path.join(DATA_DIR, "users.json");
+const REDIS_KEY = "spyral:users";
+
+// ─── File System Helpers ───────────────────────────────────────────────────
 
 function ensureDataDir(): boolean {
   try {
@@ -55,7 +88,7 @@ function ensureDataDir(): boolean {
   }
 }
 
-function readUsers(): Record<string, UserRecord> {
+function readUsersFile(): Record<string, UserRecord> {
   try {
     if (!ensureDataDir()) return {};
     if (!fs.existsSync(USERS_FILE)) return {};
@@ -66,13 +99,59 @@ function readUsers(): Record<string, UserRecord> {
   }
 }
 
-function writeUsers(users: Record<string, UserRecord>): void {
+function writeUsersFile(users: Record<string, UserRecord>): void {
   try {
     if (!ensureDataDir()) return;
     fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2), "utf-8");
   } catch {
-    // Best-effort — if we can't write, the operation fails on readUsers next time
+    // Best-effort
   }
+}
+
+// ─── Redis Helpers ─────────────────────────────────────────────────────────
+
+async function readUsersRedis(): Promise<Record<string, UserRecord>> {
+  try {
+    const client = getRedisClient();
+    if (!client) return {};
+    const data = await client.hgetall<Record<string, string>>(REDIS_KEY);
+    if (!data) return {};
+    const users: Record<string, UserRecord> = {};
+    for (const [email, json] of Object.entries(data)) {
+      try {
+        users[email] = JSON.parse(json);
+      } catch {
+        // skip corrupted entries
+      }
+    }
+    return users;
+  } catch {
+    return {};
+  }
+}
+
+async function writeUsersRedis(users: Record<string, UserRecord>): Promise<void> {
+  try {
+    const client = getRedisClient();
+    if (!client) return;
+    // Replace entire hash — this is atomic for the key
+    await client.del(REDIS_KEY);
+    if (Object.keys(users).length > 0) {
+      const entries: Record<string, string> = {};
+      for (const [email, record] of Object.entries(users)) {
+        entries[email] = JSON.stringify(record);
+      }
+      await client.hset(REDIS_KEY, entries);
+    }
+  } catch {
+    // Best-effort
+  }
+}
+
+// ─── Backend Selection ─────────────────────────────────────────────────────
+
+function useRedis(): boolean {
+  return !!getRedisClient();
 }
 
 // ─── API ───────────────────────────────────────────────────────────────────
@@ -80,48 +159,79 @@ function writeUsers(users: Record<string, UserRecord>): void {
 /**
  * Find a user by their normalized email.
  */
-export function findByEmail(email: string): UserRecord | null {
-  const users = readUsers();
+export async function findByEmail(email: string): Promise<UserRecord | null> {
   const normalized = email.trim().toLowerCase();
+
+  if (useRedis()) {
+    const users = await readUsersRedis();
+    return users[normalized] || null;
+  }
+
+  const users = readUsersFile();
   return users[normalized] || null;
 }
 
 /**
  * Save a new user record.
  */
-export function saveUser(email: string, record: UserRecord): void {
-  const users = readUsers();
+export async function saveUser(email: string, record: UserRecord): Promise<void> {
   const normalized = email.trim().toLowerCase();
+
+  if (useRedis()) {
+    const users = await readUsersRedis();
+    users[normalized] = record;
+    await writeUsersRedis(users);
+    return;
+  }
+
+  const users = readUsersFile();
   users[normalized] = record;
-  writeUsers(users);
+  writeUsersFile(users);
 }
 
 /**
  * Delete a user record. Used for transactional rollback on failed signup.
  */
-export function deleteUser(email: string): void {
-  const users = readUsers();
+export async function deleteUser(email: string): Promise<void> {
   const normalized = email.trim().toLowerCase();
+
+  if (useRedis()) {
+    const users = await readUsersRedis();
+    delete users[normalized];
+    await writeUsersRedis(users);
+    return;
+  }
+
+  const users = readUsersFile();
   delete users[normalized];
-  writeUsers(users);
+  writeUsersFile(users);
 }
 
 /**
  * Update an existing user's profile fields.
  */
-export function updateUser(
+export async function updateUser(
   email: string,
   changes: Partial<Pick<StoredUser, "name" | "avatar">>,
-): StoredUser | null {
-  const users = readUsers();
+): Promise<StoredUser | null> {
   const normalized = email.trim().toLowerCase();
+
+  if (useRedis()) {
+    const users = await readUsersRedis();
+    const record = users[normalized];
+    if (!record) return null;
+    record.user = { ...record.user, ...changes };
+    users[normalized] = record;
+    await writeUsersRedis(users);
+    return record.user;
+  }
+
+  const users = readUsersFile();
   const record = users[normalized];
   if (!record) return null;
-
   record.user = { ...record.user, ...changes };
   users[normalized] = record;
-  writeUsers(users);
-
+  writeUsersFile(users);
   return record.user;
 }
 

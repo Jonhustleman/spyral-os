@@ -38,7 +38,7 @@ export async function POST(request: Request) {
     }
 
     // Check for existing user
-    const existing = findByEmail(normalizedEmail);
+    const existing = await findByEmail(normalizedEmail);
     if (existing) {
       return NextResponse.json(
         { success: false, error: "An account with this email already exists." },
@@ -73,7 +73,7 @@ export async function POST(request: Request) {
 
     // Now save the user (this is the commit point)
     try {
-      saveUser(normalizedEmail, { passwordHash: hash, salt, user });
+      await saveUser(normalizedEmail, { passwordHash: hash, salt, user });
     } catch (err) {
       console.error("[auth/signup] Failed to save user:", err);
       return NextResponse.json(
