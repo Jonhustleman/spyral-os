@@ -5,8 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Eye, EyeOff, ArrowRight } from "lucide-react";
-import { AuthStore } from "@/features/auth";
-import { SpyralSession } from "@/features/session";
+import { AuthStore, syncAuthToSession } from "@/features/auth";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -37,8 +36,8 @@ export default function LoginPage() {
     setTimeout(() => {
       const result = AuthStore.login(email, password);
       if (result.success) {
-        // Initialize session on login
-        SpyralSession.init();
+        // Sync auth to SpyralSession — ensures user profile is available
+        syncAuthToSession();
         router.push("/");
       } else {
         setError(result.error || "Login failed.");

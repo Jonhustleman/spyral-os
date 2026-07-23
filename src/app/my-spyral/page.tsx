@@ -200,9 +200,7 @@ export default function MySpyralPage() {
                 {patterns.map((p) => (
                   <div key={p.id} className="p-4 rounded-xl border border-zinc-800 bg-zinc-900/40">
                     <p className="font-medium text-white">{p.title || p.description}</p>
-                    {p.confidence && (
-                      <p className="text-xs text-zinc-500 mt-1">Confidence: {Math.round(p.confidence * 100)}%</p>
-                    )}
+                    {/* Confidence is internal — never shown to users */}
                   </div>
                 ))}
               </div>

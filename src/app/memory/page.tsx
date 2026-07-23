@@ -150,7 +150,7 @@ export default function MemoryPage() {
               icon={Database}
               label="Semantic Facts"
               value={metrics.totalFacts.toString()}
-              subtext={`Avg confidence: ${(metrics.averageConfidence * 100).toFixed(0)}%`}
+              subtext={`${metrics.totalFacts} facts learned`}
             />
             <HealthCard
               icon={GitBranch}
@@ -190,10 +190,7 @@ export default function MemoryPage() {
                 <span className="text-sm text-zinc-400">Retrieval Count</span>
                 <span className="text-sm text-zinc-300">{metrics.retrievalCount}</span>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-zinc-400">Average Confidence</span>
-                <span className="text-sm text-zinc-300">{(metrics.averageConfidence * 100).toFixed(0)}%</span>
-              </div>
+              {/* Average Confidence is internal — never shown to users */}
             </div>
           </div>
 
@@ -350,27 +347,13 @@ export default function MemoryPage() {
                     <div key={pattern.id} className="p-3 rounded-lg bg-zinc-800/30 border border-zinc-700/50">
                       <div className="flex items-start justify-between mb-2">
                         <h3 className="text-sm font-medium text-white">{pattern.pattern}</h3>
-                        <span className={cn(
-                          "text-xs px-2 py-0.5 rounded-full",
-                          pattern.confidence > 0.7 ? "bg-emerald-500/10 text-emerald-400" :
-                          pattern.confidence > 0.4 ? "bg-amber-500/10 text-amber-400" :
-                          "bg-zinc-500/10 text-zinc-400"
-                        )}>
-                          {(pattern.confidence * 100).toFixed(0)}% confidence
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-zinc-500/10 text-zinc-400">
+                          {pattern.category}
                         </span>
                       </div>
                       <div className="flex items-center gap-2 text-xs text-zinc-600 mb-2">
-                        <span>Category: {pattern.category}</span>
-                        <span>·</span>
                         <span>Observed {pattern.occurrenceCount} times</span>
                       </div>
-                      {pattern.evidence.length > 0 && (
-                        <div className="space-y-1">
-                          {pattern.evidence.slice(0, 2).map((ev: string, i: number) => (
-                            <p key={i} className="text-xs text-zinc-500">• {ev}</p>
-                          ))}
-                        </div>
-                      )}
                     </div>
                   ))}
               </div>
@@ -402,18 +385,11 @@ export default function MemoryPage() {
                             <h3 className="text-sm font-medium text-white">{pred.title}</h3>
                             <p className="text-xs text-zinc-500 mt-1">{pred.description}</p>
                           </div>
-                          <span className={cn(
-                            "text-xs px-2 py-0.5 rounded-full shrink-0 ml-3",
-                            pred.confidence > 0.6 ? "bg-emerald-500/10 text-emerald-400" :
-                            pred.confidence > 0.3 ? "bg-amber-500/10 text-amber-400" :
-                            "bg-zinc-500/10 text-zinc-400"
-                          )}>
-                            {(pred.confidence * 100).toFixed(0)}%
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-zinc-500/10 text-zinc-400 shrink-0 ml-3">
+                            {pred.type.replace("_", " ")}
                           </span>
                         </div>
                         <div className="flex items-center gap-2 text-xs text-zinc-600">
-                          <span>Type: {pred.type.replace("_", " ")}</span>
-                          <span>·</span>
                           <span>Expires: {new Date(pred.expiresAt).toLocaleDateString()}</span>
                         </div>
                       </div>

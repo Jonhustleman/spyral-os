@@ -4,7 +4,7 @@ import { useRef, useState, useEffect } from "react";
 import { Sidebar } from "./Sidebar";
 import { BottomNav } from "./BottomNav";
 import { initBusinessCapabilities } from "@/features/capabilities/business";
-import { AuthStore } from "@/features/auth";
+import { AuthStore, syncAuthToSession } from "@/features/auth";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   // Initialize capabilities synchronously so Sidebar and BottomNav
@@ -21,7 +21,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     // Only check auth on client after mount to prevent hydration mismatch
-    setIsAuthenticated(AuthStore.isAuthenticated());
+    const authenticated = AuthStore.isAuthenticated();
+    setIsAuthenticated(authenticated);
+
+    // Sync auth to SpyralSession on page refresh
+    if (authenticated) {
+      syncAuthToSession();
+    }
+
     const unsub = AuthStore.subscribe(() => {
       setIsAuthenticated(AuthStore.isAuthenticated());
     });

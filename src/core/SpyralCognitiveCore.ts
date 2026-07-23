@@ -19,6 +19,13 @@ import { SharedContextStore } from "@/features/shared";
 import { ExperienceRecorder } from "@/core/product-intelligence";
 import { GenomeBootloader, type PreThinkContext } from "@/core/genome";
 import { IDENTITY, COGNITIVE_CONTRACTS } from "@/core/genome";
+import {
+  ResearchResponseComposer,
+  ContentResponseComposer,
+  ConsultantResponseComposer,
+  NavigationResponseComposer,
+  CommandCenterComposer,
+} from "@/features/composers";
 
 // ─── Constants ──────────────────────────────────────────────────────────
 
@@ -1371,173 +1378,48 @@ class SpyralCognitiveCoreImpl {
     _executionPlan: string,
     intent: CognitiveIntent,
   ): string {
-    const strategy = intent.reasoningStrategy;
-    let response = "";
+    // Delegate to the appropriate agent composer.
+    // Each composer is a pure function that receives the input + full
+    // cognitive response and returns a unique conversational experience.
+    const composerInput = {
+      input,
+      response: {
+        input: input.input,
+        agentType: input.agentType,
+        researchMode: input.researchMode,
+        intent,
+        reasoningStrategy: intent.reasoningStrategy,
+        understanding,
+        retrievedMemories: [],
+        mentalModel: {} as MentalModel,
+        sop: {} as SOPResult,
+        lde: {} as LDEResult,
+        ste,
+        sve,
+        sae,
+        recommendation,
+        executionPlan: _executionPlan,
+        learning: { patternsFound: [], insightsGained: [], confidenceImpact: 0 },
+        selfCritique: "",
+        response: "",
+        confidence: 0,
+      } as CognitiveResponse,
+    };
 
-    if (input.agentType === "research") {
-      response = this.buildResearchResponse(input, ste, sve, sae, intent);
-    } else if (input.agentType === "content") {
-      response = this.buildContentResponse(input, understanding, recommendation, intent);
-    } else if (input.agentType === "consultant") {
-      response = this.buildConsultantResponse(input, ste, sve, sae, recommendation, intent);
-    } else if (input.agentType === "navigation") {
-      response = this.buildNavigationResponse(input, ste, sve, sae, intent);
-    } else {
-      response = this.buildGenericResponse(input, understanding, recommendation, sae, intent);
+    switch (input.agentType) {
+      case "research":
+        return ResearchResponseComposer(composerInput);
+      case "content":
+        return ContentResponseComposer(composerInput);
+      case "consultant":
+        return ConsultantResponseComposer(composerInput);
+      case "navigation":
+        return NavigationResponseComposer(composerInput);
+      case "command":
+        return CommandCenterComposer(composerInput);
+      default:
+        return NavigationResponseComposer(composerInput);
     }
-
-    return response;
-  }
-
-  // ─── Agent-Specific Response Builders ────────────────────────────────
-
-  private buildResearchResponse(input: ThinkInput, ste: STEResult, sve: SVEResult, sae: SAEResult, intent: CognitiveIntent): string {
-    const mode = input.researchMode || "discovery";
-
-    if (mode === "discovery") {
-      const questions = [
-        "What made this idea stick with you?",
-        "If we understood this completely, what would change?",
-        "What's the biggest assumption people make about this?",
-        "Where would we start if we wanted to test this?",
-        "What part of this fascinates you most?",
-      ];
-      const index = input.input.length % questions.length;
-      return questions[index];
-    }
-
-    if (mode === "experiment") {
-      return `The interesting part about this is figuring out what we'd actually need to observe to know we're on the right track. What would a meaningful test look like from where you're standing?`;
-    }
-
-    if (mode === "literature") {
-      return `There's probably more written about this than anyone could read in a lifetime. The real question is which parts actually matter for what you're trying to do. What's the core question you're hoping existing knowledge can answer?`;
-    }
-
-    if (mode === "theory") {
-      return `Sometimes the best way forward is to flip the whole thing upside down. If we assumed everything conventional about this is wrong — where would we start looking instead?`;
-    }
-
-    if (mode === "report") {
-      return `A few angles worth surfacing here. Though honestly, the most valuable thing isn't a summary of what's known — it's figuring out what's missing. What question, if answered, would change everything?`;
-    }
-
-    if (mode === "debate") {
-      return `Let me play with this for a moment. There's a case to be made for the conventional view — it's conventional for a reason. But the most interesting insights usually come from the arguments against it. What's the strongest criticism of your current position that you've encountered?`;
-    }
-
-    const fallbacks = [
-      "That's a fascinating direction. What draws you to it?",
-      "There's something interesting lurking here. What's the first thread you want to pull?",
-      "This is one of those topics where the deeper you go, the more interesting it gets. Where should we start?",
-    ];
-    return fallbacks[input.input.length % fallbacks.length];
-  }
-
-  private buildContentResponse(input: ThinkInput, understanding: string, recommendation: string, intent: CognitiveIntent): string {
-    const strategy = intent.reasoningStrategy;
-
-    if (strategy === "creation") {
-      const questions = [
-        "What reaction do you want someone to have after experiencing this?",
-        "If this content worked perfectly, what would someone feel? Think? Do?",
-        "What's the one thing you need people to understand that they don't already?",
-        "Who is this really for — and what keeps them up at night?",
-        "What's the story here that only you can tell?",
-      ];
-      const index = input.input.length % questions.length;
-      return questions[index];
-    }
-
-    const fallbacks = [
-      "Before we figure out the format, let's figure out the feeling. What should someone walk away feeling after they've seen this?",
-      "The best content starts with a truth that needs to be shared. What truth are you sitting on?",
-      "Let's skip the strategy deck for a second. What would you make if there were no constraints at all?",
-    ];
-    return fallbacks[input.input.length % fallbacks.length];
-  }
-
-  private buildConsultantResponse(input: ThinkInput, ste: STEResult, sve: SVEResult, _sae: SAEResult, recommendation: string, intent: CognitiveIntent): string {
-    const strategy = intent.reasoningStrategy;
-
-    if (strategy === "decision") {
-      return `This feels like one of those situations where there's no perfect answer — just trade-offs. The path you choose says more about what you value than what's objectively right. Before we weigh options, what matters most to you in this decision?
-
-${this.buildConsultantFollowUp(input)}`;
-    }
-
-    const questions = [
-      "What's the real challenge here — not the surface problem, but the thing underneath?",
-      "If you could wave a wand and have this solved, what would be different?",
-      "What have you already tried that hasn't worked, and what did that teach you?",
-      "Who else sees this situation differently, and what might they be right about?",
-    ];
-    const index = input.input.length % questions.length;
-    return questions[index];
-  }
-
-  private buildNavigationResponse(input: ThinkInput, ste: STEResult, sve: SVEResult, _sae: SAEResult, intent: CognitiveIntent): string {
-    const strategy = intent.reasoningStrategy;
-
-    if (strategy === "planning") {
-      return `The hardest part of any journey isn't the distance — it's knowing which direction actually matters. Where are you right now, and what's telling you it's time to move?`;
-    }
-
-    const questions = [
-      "If you could be exactly where you want to be six months from now, what would that look like?",
-      "What's the biggest obstacle between where you are and where you want to be?",
-      "What have you already figured out about the path forward?",
-      "What's the smallest step you could take right now that would create momentum?",
-      "Who's already made this journey that you could learn from?",
-    ];
-    const index = input.input.length % questions.length;
-    return questions[index];
-  }
-
-  private buildGenericResponse(input: ThinkInput, understanding: string, recommendation: string, _sae: SAEResult, intent: CognitiveIntent): string {
-    const strategy = intent.reasoningStrategy;
-    if (strategy === "discovery") {
-      const questions = [
-        "I'd love to explore this with you. Where should we start?",
-        "This is one of those topics where the more you question, the more interesting it gets. What's the first thing that comes to mind?",
-        "Let's think about this together. What part of it feels most alive to you right now?",
-      ];
-      const index = input.input.length % questions.length;
-      return questions[index];
-    }
-    const fallbacks = [
-      "I've been turning this over. What do you think is the right next step?",
-      "There are a few ways to look at this. Which one feels most true to you?",
-      "Let's sit with this for a moment. What does your intuition tell you?",
-    ];
-    const index = input.input.length % fallbacks.length;
-    return fallbacks[index];
-  }
-
-  private buildFollowUpQuestion(input: ThinkInput): string {
-    const questions = [
-      "What made this idea stick with you?",
-      "If we understood this completely, what would change?",
-      "What's the biggest assumption people make about this?",
-      "What part of this fascinates you most?",
-      "Where would we start if we wanted to test this?",
-    ];
-
-    const index = input.input.length % questions.length;
-    return questions[index];
-  }
-
-  private buildConsultantFollowUp(input: ThinkInput): string {
-    const questions = [
-      "What would need to be true for this to succeed?",
-      "What's the cost of not addressing this?",
-      "Who benefits most from things staying as they are?",
-      "What have you already tried that hasn't worked, and what did that teach you?",
-      "If you knew you couldn't fail, what would you try?",
-    ];
-
-    const index = input.input.length % questions.length;
-    return questions[index];
   }
 
   // ─── UTILITY: Get Research Modes ─────────────────────────────────────
