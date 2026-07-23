@@ -79,9 +79,13 @@ class ApiAuthServiceImpl implements AuthService {
   }
 
   async login(email: string, password: string): Promise<LoginResult> {
+    // Send last cached token to enable server-side recovery when
+    // the user store is unavailable (e.g., Vercel /tmp/ was cleared).
+    const lastToken = this.getCachedToken();
+
     const result = await api<LoginResult>("/api/auth/login", {
       method: "POST",
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email, password, lastToken }),
     });
 
     if (result.success && result.token) {
@@ -93,7 +97,10 @@ class ApiAuthServiceImpl implements AuthService {
 
   async logout(): Promise<AuthResult> {
     const token = this.getCachedToken();
-    this.clearToken();
+    // Keep the token in localStorage so it can be used for token-assisted
+    // login recovery when the server store is unavailable (Vercel serverless).
+    // The AuthStore clears its in-memory state — the token is preserved
+    // for re-authentication only. It expires naturally after 30 days.
 
     if (token) {
       // Fire-and-forget: tell server to invalidate (best-effort)
