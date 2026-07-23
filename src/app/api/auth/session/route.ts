@@ -7,12 +7,30 @@
  * Token can be provided via:
  *   - Authorization: Bearer <token> header
  *   - ?token=<token> query parameter
+ *
+ * Session resilience:
+ *   On Vercel serverless, /tmp/ storage can be cleared between requests.
+ *   To handle this, we return user data from the token payload itself when
+ *   the file store is unavailable. The token is self-contained — it holds
+ *   userId, email, and name. This ensures sessions survive storage resets.
+ *
+ *   We attempt to fetch the latest user data from the store (for profile
+ *   updates), but fall back to the token payload if the store is empty.
  */
 import { NextResponse } from "next/server";
-import { verifyToken, extractToken } from "../_token";
+import { verifyToken, extractToken, type TokenPayload } from "../_token";
 import { findByEmail } from "../_store";
 
 export const dynamic = "force-dynamic";
+
+function payloadToUser(payload: TokenPayload) {
+  return {
+    id: payload.userId,
+    email: payload.email,
+    name: payload.name,
+    createdAt: new Date(payload.iat).toISOString(),
+  };
+}
 
 export async function GET(request: Request) {
   try {
@@ -28,16 +46,24 @@ export async function GET(request: Request) {
       return NextResponse.json({ valid: false, error: "Invalid or expired token." });
     }
 
-    // Fetch latest user data from store
+    // Attempt to fetch latest user data from store
+    // If the store is unavailable (e.g., Vercel /tmp/ was cleared), fall back
+    // to the token payload — the token itself is authoritative.
     const record = findByEmail(payload.email);
 
-    if (!record) {
-      return NextResponse.json({ valid: false, error: "User not found." });
+    if (record) {
+      // User found in store — return latest data
+      return NextResponse.json({
+        valid: true,
+        user: record.user,
+      });
     }
 
+    // Store unavailable — return user data from token payload
+    // This ensures sessions survive Vercel serverless storage resets.
     return NextResponse.json({
       valid: true,
-      user: record.user,
+      user: payloadToUser(payload),
     });
   } catch (err) {
     console.error("[auth/session] Error:", err);
