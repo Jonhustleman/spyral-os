@@ -28,22 +28,20 @@ export default function LoginPage() {
     }
   }, [router]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setLoading(true);
 
-    setTimeout(() => {
-      const result = AuthStore.login(email, password);
-      if (result.success) {
-        // Sync auth to SpyralSession — ensures user profile is available
-        syncAuthToSession();
-        router.push("/");
-      } else {
-        setError(result.error || "Login failed.");
-      }
-      setLoading(false);
-    }, 300);
+    const result = await AuthStore.login(email, password);
+    if (result.success) {
+      // Sync auth to SpyralSession — ensures user profile is available
+      syncAuthToSession();
+      router.push("/");
+    } else {
+      setError(result.error || "Login failed.");
+    }
+    setLoading(false);
   };
 
   return (

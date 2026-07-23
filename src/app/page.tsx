@@ -117,51 +117,54 @@ export default function HomePage() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    const authed = AuthStore.isAuthenticated();
-    setIsAuthenticated(authed);
+    // Wait for auth to initialize (validates cached token against server)
+    AuthStore.init().then(() => {
+      const authed = AuthStore.isAuthenticated();
+      setIsAuthenticated(authed);
 
-    if (authed) {
-      SpyralSession.init();
-      const session = SpyralSession.get();
+      if (authed) {
+        SpyralSession.init();
+        const session = SpyralSession.get();
 
-      // Get user profile
-      const profile = session?.currentUser;
-      setUser(profile as UserProfile | null);
+        // Get user profile
+        const profile = session?.currentUser;
+        setUser(profile as UserProfile | null);
 
-      // Set greeting
-      const name = profile?.name || "there";
-      setGreeting(`${getTimeGreeting()} ${name.split(" ")[0]}.`);
+        // Set greeting
+        const name = profile?.name || "there";
+        setGreeting(`${getTimeGreeting()} ${name.split(" ")[0]}.`);
 
-      // Last activity summary
-      const summary = SpyralSession.getLastActivitySummary();
-      setLastActivity(summary);
+        // Last activity summary
+        const summary = SpyralSession.getLastActivitySummary();
+        setLastActivity(summary);
 
-      // Active investigation
-      const investigations = SpyralSession.getInvestigations();
-      const active = investigations.find((i: any) => i.status === "active");
-      setActiveInvestigation(active?.question || "");
+        // Active investigation
+        const investigations = SpyralSession.getInvestigations();
+        const active = investigations.find((i: any) => i.status === "active");
+        setActiveInvestigation(active?.question || "");
 
-      // Active mission
-      const missions = SpyralSession.getMissions();
-      const activeM = missions.find((m: any) => m.status === "active");
-      setActiveMission(activeM?.title || "");
+        // Active mission
+        const missions = SpyralSession.getMissions();
+        const activeM = missions.find((m: any) => m.status === "active");
+        setActiveMission(activeM?.title || "");
 
-      // Recent workspaces
-      setWorkspaces(WorkspaceStore.getRecent(4));
+        // Recent workspaces
+        setWorkspaces(WorkspaceStore.getRecent(4));
 
-      // Recent patterns
-      setPatterns(LearningStore.getPatterns().slice(0, 3));
+        // Recent patterns
+        setPatterns(LearningStore.getPatterns().slice(0, 3));
 
-      // Check if onboarding needed
-      if (profile && !(profile as any).onboarded) {
-        setShowOnboarding(true);
+        // Check if onboarding needed
+        if (profile && !(profile as any).onboarded) {
+          setShowOnboarding(true);
+        }
       }
+    });
 
-      const unsub = AuthStore.subscribe(() => {
-        setIsAuthenticated(AuthStore.isAuthenticated());
-      });
-      return unsub;
-    }
+    const unsub = AuthStore.subscribe(() => {
+      setIsAuthenticated(AuthStore.isAuthenticated());
+    });
+    return unsub;
   }, []);
 
   // ── Onboarding Handlers ──────────────────────────────────────────────────

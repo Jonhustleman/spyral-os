@@ -1,7 +1,7 @@
 /**
  * AuthSync — Bridges AuthStore ↔ SpyralSession.
  *
- * AuthStore is the single source of truth for authentication.
+ * AuthStore (backed by server API) is the single source of truth.
  * SpyralSession holds user profile + session data for the app.
  * This utility ensures they stay in sync on login, signup, and page refresh.
  *

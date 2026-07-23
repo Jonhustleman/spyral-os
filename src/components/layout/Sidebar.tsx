@@ -35,8 +35,8 @@ export function Sidebar() {
     setUser(AuthStore.getUser());
   }, []);
 
-  const handleLogout = () => {
-    AuthStore.logout();
+  const handleLogout = async () => {
+    await AuthStore.logout();
     router.push("/");
   };
 

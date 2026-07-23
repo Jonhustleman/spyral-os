@@ -23,25 +23,23 @@ export default function SignupPage() {
     }
   }, [router]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setLoading(true);
 
-    setTimeout(() => {
-      const result = AuthStore.signup(email, password, name);
-      if (result.success) {
-        // Sync auth to SpyralSession — ensures user profile is available
-        syncAuthToSession();
-        // Store the user's name from signup
-        const profile = SpyralSession.getUser() || { name, email, onboarded: false } as any;
-        SpyralSession.setUser({ ...profile, name, email } as any);
-        router.push("/");
-      } else {
-        setError(result.error || "Signup failed.");
-      }
-      setLoading(false);
-    }, 300);
+    const result = await AuthStore.signup(email, password, name);
+    if (result.success) {
+      // Sync auth to SpyralSession — ensures user profile is available
+      syncAuthToSession();
+      // Store the user's name from signup
+      const profile = SpyralSession.getUser() || { name, email, onboarded: false } as any;
+      SpyralSession.setUser({ ...profile, name, email } as any);
+      router.push("/");
+    } else {
+      setError(result.error || "Signup failed.");
+    }
+    setLoading(false);
   };
 
   return (

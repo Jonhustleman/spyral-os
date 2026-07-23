@@ -1,9 +1,27 @@
 /**
  * SPYRAL OS — Auth Store
  *
- * Client-side authentication with localStorage persistence.
- * Supports: email/password signup, login, logout, persistent sessions.
+ * Client-side authentication cache.
+ *
+ * Architecture:
+ *   AuthService (interface) ← ApiAuthService → Next.js API routes → File store
+ *                                         ↕
+ *   AuthStore (client cache, localStorage)
+ *
+ * AuthStore is a SYNCHRONOUS cache for React components to read.
+ * The actual source of truth is the SERVER (API routes).
+ * localStorage is ONLY a cache — if the server says a token is invalid,
+ * the cache is cleared.
+ *
+ * Flow:
+ *   1. App mounts → AuthStore.init() validates cached token against server
+ *   2. User logs in → API validates credentials → returns token → cache it
+ *   3. User refreshes → AuthStore.init() validates cached token → restore or clear
+ *   4. User logs out → clear cache → tell server (best-effort)
  */
+
+import type { AuthService, LoginResult } from "./AuthService";
+import { ApiAuthService } from "./AuthServiceImpl";
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -20,12 +38,11 @@ interface AuthState {
   isAuthenticated: boolean;
 }
 
-// ─── Storage ───────────────────────────────────────────────────────────────
+// ─── Storage (cache only — not source of truth) ────────────────────────────
 
 const AUTH_KEY = "spyral_auth";
-const USERS_KEY = "spyral_users";
 
-function loadSession(): AuthState {
+function loadCachedSession(): AuthState {
   try {
     const raw = localStorage.getItem(AUTH_KEY);
     if (!raw) return { user: null, isAuthenticated: false };
@@ -37,34 +54,20 @@ function loadSession(): AuthState {
   }
 }
 
-function saveSession(state: AuthState): void {
+function saveCachedSession(state: AuthState): void {
   try {
     localStorage.setItem(AUTH_KEY, JSON.stringify(state));
-  } catch (e) {
-    console.error("Failed to persist auth state:", e);
-  }
-}
-
-function loadUsers(): Record<string, { password: string; user: SpyralUser }> {
-  try {
-    const raw = localStorage.getItem(USERS_KEY);
-    if (!raw) return {};
-    return JSON.parse(raw);
   } catch {
-    return {};
+    // localStorage may be unavailable
   }
 }
 
-function saveUsers(users: Record<string, { password: string; user: SpyralUser }>): void {
+function clearCachedSession(): void {
   try {
-    localStorage.setItem(USERS_KEY, JSON.stringify(users));
-  } catch (e) {
-    console.error("Failed to persist users:", e);
+    localStorage.removeItem(AUTH_KEY);
+  } catch {
+    // noop
   }
-}
-
-function generateId(): string {
-  return crypto.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
 // ─── Store ─────────────────────────────────────────────────────────────────
@@ -74,12 +77,88 @@ type AuthListener = (state: AuthState) => void;
 class AuthStoreImpl {
   private state: AuthState;
   private listeners: Set<AuthListener> = new Set();
+  private _initialized = false;
+  private _initPromise: Promise<void> | null = null;
 
   constructor() {
-    this.state = loadSession();
+    // Load from localStorage cache on construction (synchronous for first render)
+    this.state = loadCachedSession();
   }
 
-  // ── Subscriptions ──────────────────────────────────────────────────────
+  // ── Initialization ────────────────────────────────────────────────────
+
+  /**
+   * Initialize auth — validate cached token against the server.
+   *
+   * Call this once when the app mounts (in AppShell or layout).
+   * - If the server validates the token, the session is confirmed.
+   * - If the server rejects the token, the cache is cleared.
+   *
+   * Returns a promise that resolves when validation is complete.
+   */
+  async init(): Promise<void> {
+    if (this._initPromise) return this._initPromise;
+
+    this._initPromise = this._doInit().finally(() => {
+      this._initialized = true;
+    });
+
+    return this._initPromise;
+  }
+
+  private async _doInit(): Promise<void> {
+    const cachedToken = ApiAuthService.getCachedToken();
+
+    if (!cachedToken) {
+      // No cached token — user is not authenticated
+      if (this.state.isAuthenticated) {
+        // Cache says authenticated but no token — inconsistency. Clear.
+        this.state = { user: null, isAuthenticated: false };
+        clearCachedSession();
+        this.notify();
+      }
+      return;
+    }
+
+    // Validate the cached token against the server
+    const session = await ApiAuthService.validateSession(cachedToken);
+
+    if (session && session.user) {
+      // Token is valid — restore the session
+      const user: SpyralUser = {
+        id: session.user.id,
+        email: session.user.email,
+        name: session.user.name,
+        avatar: session.user.avatar,
+        createdAt: session.user.createdAt,
+      };
+      this.state = { user, isAuthenticated: true };
+      saveCachedSession(this.state);
+    } else {
+      // Token is invalid/expired — clear everything
+      this.state = { user: null, isAuthenticated: false };
+      clearCachedSession();
+    }
+
+    this.notify();
+  }
+
+  /**
+   * Whether init() has completed.
+   */
+  get initialized(): boolean {
+    return this._initialized;
+  }
+
+  /**
+   * Wait for initialization to complete.
+   */
+  async ready(): Promise<void> {
+    if (this._initialized) return;
+    return this.init();
+  }
+
+  // ── Subscriptions ─────────────────────────────────────────────────────
 
   subscribe(listener: AuthListener): () => void {
     this.listeners.add(listener);
@@ -90,7 +169,7 @@ class AuthStoreImpl {
     this.listeners.forEach((fn) => fn(this.state));
   }
 
-  // ── Getters ────────────────────────────────────────────────────────────
+  // ── Getters (synchronous — read from cache) ───────────────────────────
 
   getState(): AuthState {
     return { ...this.state };
@@ -104,98 +183,84 @@ class AuthStoreImpl {
     return this.state.isAuthenticated;
   }
 
-  // ── Commands ───────────────────────────────────────────────────────────
+  // ── Commands (async — call API first, then cache) ─────────────────────
 
   /**
    * Sign up with email/password.
-   * Returns { success, error? }.
+   * Calls the API — the server is the source of truth.
    */
-  signup(email: string, password: string, name: string): { success: boolean; error?: string } {
-    const normalizedEmail = email.trim().toLowerCase();
+  async signup(email: string, password: string, name: string): Promise<{ success: boolean; error?: string }> {
+    const result = await ApiAuthService.signup(email, password, name);
 
-    if (!normalizedEmail || !password || !name.trim()) {
-      return { success: false, error: "All fields are required." };
+    if (result.success && result.user) {
+      const user: SpyralUser = {
+        id: result.user.id,
+        email: result.user.email,
+        name: result.user.name,
+        avatar: result.user.avatar,
+        createdAt: result.user.createdAt,
+      };
+      this.state = { user, isAuthenticated: true };
+      saveCachedSession(this.state);
+      this.notify();
     }
 
-    if (password.length < 6) {
-      return { success: false, error: "Password must be at least 6 characters." };
-    }
-
-    const users = loadUsers();
-
-    if (users[normalizedEmail]) {
-      return { success: false, error: "An account with this email already exists." };
-    }
-
-    const user: SpyralUser = {
-      id: generateId(),
-      email: normalizedEmail,
-      name: name.trim(),
-      createdAt: new Date().toISOString(),
-    };
-
-    users[normalizedEmail] = { password, user };
-    saveUsers(users);
-
-    this.state = { user, isAuthenticated: true };
-    saveSession(this.state);
-    this.notify();
-
-    return { success: true };
+    return result;
   }
 
   /**
    * Login with email/password.
-   * Returns { success, error? }.
+   * Calls the API — the server validates credentials.
    */
-  login(email: string, password: string): { success: boolean; error?: string } {
-    const normalizedEmail = email.trim().toLowerCase();
+  async login(email: string, password: string): Promise<{ success: boolean; error?: string }> {
+    const result = await ApiAuthService.login(email, password);
 
-    if (!normalizedEmail || !password) {
-      return { success: false, error: "Email and password are required." };
+    if (result.success && result.user) {
+      const user: SpyralUser = {
+        id: result.user.id,
+        email: result.user.email,
+        name: result.user.name,
+        avatar: result.user.avatar,
+        createdAt: result.user.createdAt,
+      };
+      this.state = { user, isAuthenticated: true };
+      saveCachedSession(this.state);
+      this.notify();
     }
 
-    const users = loadUsers();
-    const record = users[normalizedEmail];
-
-    if (!record || record.password !== password) {
-      return { success: false, error: "Invalid email or password." };
-    }
-
-    this.state = { user: record.user, isAuthenticated: true };
-    saveSession(this.state);
-    this.notify();
-
-    return { success: true };
+    return result;
   }
 
   /**
    * Logout and clear session.
    */
-  logout(): void {
+  async logout(): Promise<void> {
+    await ApiAuthService.logout();
     this.state = { user: null, isAuthenticated: false };
-    saveSession(this.state);
+    clearCachedSession();
     this.notify();
   }
 
   /**
    * Update user profile.
    */
-  updateProfile(changes: Partial<Pick<SpyralUser, "name" | "avatar">>): void {
+  async updateProfile(changes: Partial<Pick<SpyralUser, "name" | "avatar">>): Promise<void> {
     if (!this.state.user) return;
 
-    this.state.user = { ...this.state.user, ...changes };
-    saveSession(this.state);
+    const token = ApiAuthService.getCachedToken();
+    if (!token) return;
 
-    // Also update in users registry
-    const users = loadUsers();
-    const record = users[this.state.user.email];
-    if (record) {
-      record.user = this.state.user;
-      saveUsers(users);
+    const result = await ApiAuthService.updateProfile(token, changes);
+
+    if (result.user) {
+      this.state.user = {
+        ...this.state.user,
+        name: result.user.name ?? this.state.user.name,
+        avatar: result.user.avatar ?? this.state.user.avatar,
+      };
+      saveCachedSession(this.state);
+      this.notify();
     }
-
-    this.notify();
   }
 }
 

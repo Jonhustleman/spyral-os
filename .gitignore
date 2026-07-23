@@ -28,6 +28,13 @@ dist/
 # debug
 npm-debug.log*
 yarn-debug.log*
+
+# local data (development user store)
+.data/
+
+# environment
+.env.local
+.env.*.local
 yarn-error.log*
 
 # TypeScript
