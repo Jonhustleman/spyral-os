@@ -2,15 +2,16 @@
  * Auth Store — Server-side user persistence.
  *
  * Uses a JSON file for development (persists across server restarts).
- * Falls back to in-memory storage if filesystem is unavailable (Vercel).
+ * On Vercel, uses /tmp/spyral-data/ (writable across same-instance requests).
  *
  * Designed to be swapped for Vercel KV / Supabase / Firebase in production
  * without changing the API route handlers.
  *
  * The store interface is minimal so an adapter can be written for any backend:
  *   - findByEmail(email) → UserRecord | null
- *   - save(record) → void
- *   - update(email, changes) → void
+ *   - saveUser(email, record) → void
+ *   - deleteUser(email) → void
+ *   - updateUser(email, changes) → StoredUser | null
  */
 
 import crypto from "node:crypto";
@@ -34,13 +35,14 @@ export interface UserRecord {
 }
 
 // ─── Storage Backend ───────────────────────────────────────────────────────
+// On Vercel, use /tmp/ (the only writable directory).
+// On local, use .data/ in the project root.
 
-const DATA_DIR = path.join(process.cwd(), ".data");
+const IS_VERCEL = process.env.VERCEL === "1";
+const DATA_DIR = IS_VERCEL
+  ? "/tmp/spyral-data"
+  : path.join(process.cwd(), ".data");
 const USERS_FILE = path.join(DATA_DIR, "users.json");
-
-// In-memory fallback for environments where filesystem is read-only (Vercel)
-let memoryStore: Record<string, UserRecord> | null = null;
-let useMemoryFallback = false;
 
 function ensureDataDir(): boolean {
   try {
@@ -49,18 +51,13 @@ function ensureDataDir(): boolean {
     }
     return true;
   } catch {
-    // Filesystem not writable (e.g., Vercel production) — use in-memory
-    useMemoryFallback = true;
-    if (!memoryStore) memoryStore = {};
     return false;
   }
 }
 
 function readUsers(): Record<string, UserRecord> {
-  if (useMemoryFallback) return memoryStore || {};
-
   try {
-    ensureDataDir();
+    if (!ensureDataDir()) return {};
     if (!fs.existsSync(USERS_FILE)) return {};
     const raw = fs.readFileSync(USERS_FILE, "utf-8");
     return JSON.parse(raw);
@@ -70,18 +67,11 @@ function readUsers(): Record<string, UserRecord> {
 }
 
 function writeUsers(users: Record<string, UserRecord>): void {
-  if (useMemoryFallback) {
-    memoryStore = users;
-    return;
-  }
-
   try {
-    ensureDataDir();
+    if (!ensureDataDir()) return;
     fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2), "utf-8");
   } catch {
-    // Fall back to in-memory
-    useMemoryFallback = true;
-    memoryStore = users;
+    // Best-effort — if we can't write, the operation fails on readUsers next time
   }
 }
 
@@ -103,6 +93,16 @@ export function saveUser(email: string, record: UserRecord): void {
   const users = readUsers();
   const normalized = email.trim().toLowerCase();
   users[normalized] = record;
+  writeUsers(users);
+}
+
+/**
+ * Delete a user record. Used for transactional rollback on failed signup.
+ */
+export function deleteUser(email: string): void {
+  const users = readUsers();
+  const normalized = email.trim().toLowerCase();
+  delete users[normalized];
   writeUsers(users);
 }
 

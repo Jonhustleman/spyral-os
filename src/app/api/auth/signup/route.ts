@@ -1,15 +1,18 @@
 /**
  * POST /api/auth/signup — Create a new account.
+ *
+ * Transactional: either everything succeeds or everything rolls back.
+ * Never leaves half-created accounts.
  */
 import { NextResponse } from "next/server";
-import { findByEmail, saveUser, hashPassword, generateId } from "../_store";
+import { findByEmail, saveUser, deleteUser, hashPassword, generateId } from "../_store";
 import { createToken } from "../_token";
 
 export async function POST(request: Request) {
   try {
     const { email, password, name } = await request.json();
 
-    // Validate
+    // ── Validate ───────────────────────────────────────────────────────
     if (!email || !password || !name?.trim()) {
       return NextResponse.json(
         { success: false, error: "All fields are required." },
@@ -26,6 +29,14 @@ export async function POST(request: Request) {
       );
     }
 
+    const trimmedName = name.trim();
+    if (trimmedName.length < 1) {
+      return NextResponse.json(
+        { success: false, error: "Name is required." },
+        { status: 400 },
+      );
+    }
+
     // Check for existing user
     const existing = findByEmail(normalizedEmail);
     if (existing) {
@@ -35,21 +46,41 @@ export async function POST(request: Request) {
       );
     }
 
-    // Create user
+    // ── Create user (pre-generate everything before saving) ────────────
     const userId = generateId();
     const { hash, salt } = hashPassword(password);
 
     const user = {
       id: userId,
       email: normalizedEmail,
-      name: name.trim(),
+      name: trimmedName,
       createdAt: new Date().toISOString(),
     };
 
-    saveUser(normalizedEmail, { passwordHash: hash, salt, user });
+    // Create session token BEFORE saving user.
+    // If this fails (e.g., AUTH_SECRET missing in production), we never
+    // create the user — no orphan accounts.
+    let token: string;
+    try {
+      token = createToken(userId, normalizedEmail, user.name);
+    } catch (err) {
+      console.error("[auth/signup] Token creation failed:", err);
+      return NextResponse.json(
+        { success: false, error: "Authentication configuration error. Please contact support." },
+        { status: 500 },
+      );
+    }
 
-    // Create session token
-    const token = createToken(userId, normalizedEmail, user.name);
+    // Now save the user (this is the commit point)
+    try {
+      saveUser(normalizedEmail, { passwordHash: hash, salt, user });
+    } catch (err) {
+      console.error("[auth/signup] Failed to save user:", err);
+      return NextResponse.json(
+        { success: false, error: "Failed to create account. Please try again." },
+        { status: 500 },
+      );
+    }
 
     return NextResponse.json({ success: true, user, token });
   } catch (err) {

@@ -9,6 +9,7 @@ export async function POST(request: Request) {
   try {
     const { email, password } = await request.json();
 
+    // Validate
     if (!email || !password) {
       return NextResponse.json(
         { success: false, error: "Email and password are required." },
@@ -21,7 +22,7 @@ export async function POST(request: Request) {
 
     if (!record) {
       return NextResponse.json(
-        { success: false, error: "Invalid email or password." },
+        { success: false, error: "Account not found. Check your email or sign up." },
         { status: 401 },
       );
     }
@@ -30,13 +31,22 @@ export async function POST(request: Request) {
     const valid = verifyPassword(password, record.passwordHash, record.salt);
     if (!valid) {
       return NextResponse.json(
-        { success: false, error: "Invalid email or password." },
+        { success: false, error: "Incorrect password." },
         { status: 401 },
       );
     }
 
     // Create session token
-    const token = createToken(record.user.id, normalizedEmail, record.user.name);
+    let token: string;
+    try {
+      token = createToken(record.user.id, normalizedEmail, record.user.name);
+    } catch (err) {
+      console.error("[auth/login] Token creation failed:", err);
+      return NextResponse.json(
+        { success: false, error: "Authentication configuration error. Please contact support." },
+        { status: 500 },
+      );
+    }
 
     return NextResponse.json({ success: true, user: record.user, token });
   } catch (err) {

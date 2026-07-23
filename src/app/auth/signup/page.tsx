@@ -6,7 +6,6 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { Eye, EyeOff, ArrowRight } from "lucide-react";
 import { AuthStore, syncAuthToSession } from "@/features/auth";
-import { SpyralSession } from "@/features/session";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -31,10 +30,8 @@ export default function SignupPage() {
     const result = await AuthStore.signup(email, password, name);
     if (result.success) {
       // Sync auth to SpyralSession — ensures user profile is available
+      // This is the single source of truth for user identity
       syncAuthToSession();
-      // Store the user's name from signup
-      const profile = SpyralSession.getUser() || { name, email, onboarded: false } as any;
-      SpyralSession.setUser({ ...profile, name, email } as any);
       router.push("/");
     } else {
       setError(result.error || "Signup failed.");

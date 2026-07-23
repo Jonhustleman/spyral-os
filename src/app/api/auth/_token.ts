@@ -21,7 +21,8 @@ const TOKEN_EXPIRY_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
 function getSecret(): string {
   // In production, set AUTH_SECRET as an environment variable on Vercel.
-  // In development, a warning is logged and a random dev secret is used.
+  // In development, a deterministic secret is derived from the machine's
+  // hostname so tokens survive dev server restarts on the same machine.
   const secret = process.env.AUTH_SECRET || process.env.SPYRAL_AUTH_SECRET;
   if (secret) return secret;
 
@@ -32,13 +33,15 @@ function getSecret(): string {
     );
   }
 
-  // Dev-only fallback: generate a stable secret from machine hostname
+  // Dev-only: deterministic secret from machine hostname + package name
   // This ensures tokens survive dev server restarts on the same machine.
-  const devSecret = `spyral-dev-${crypto.randomBytes(16).toString("hex")}`;
-  console.warn(
-    "[auth] No AUTH_SECRET set. Using ephemeral dev secret. " +
-    "Tokens will be invalidated on server restart. " +
-    "Set AUTH_SECRET in .env.local for persistent dev tokens."
+  const hostname = (() => {
+    try { return require("os").hostname(); } catch { return "localhost"; }
+  })();
+  const devSecret = `spyral-dev-${crypto.createHash("sha256").update(`spyral-os-${hostname}`).digest("hex").slice(0, 32)}`;
+  console.log(
+    `[auth] Using dev secret derived from hostname "${hostname}". ` +
+    "Set AUTH_SECRET in .env.local for a custom persistent secret."
   );
   return devSecret;
 }
