@@ -3,10 +3,9 @@
 import { useState, useRef, useEffect } from "react";
 import { ThinkingIndicator } from "@/components/ThinkingIndicator";
 import Link from "next/link";
-import { Send, Home, Clock } from "lucide-react";
+import { Send, Home } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SpyralCognitiveCore } from "@/core";
-import { SpyralSession } from "@/features/session";
 
 // ─── Message types ─────────────────────────────────────────────────────────
 
@@ -17,18 +16,6 @@ type Message = {
   timestamp: Date;
 };
 
-// ─── Investigation ─────────────────────────────────────────────────────────
-
-type InvestigationItem = {
-  question: string;
-  hypotheses: string[];
-  evidence: string[];
-  unknowns: string[];
-  experiments: string[];
-  followUp: string;
-  timestamp: number;
-};
-
 // ─── Research Agent Page ────────────────────────────────────────────────────
 
 export default function ResearchAgentPage() {
@@ -37,53 +24,16 @@ export default function ResearchAgentPage() {
     {
       id: "welcome",
       role: "agent",
-      content: "I'm your research partner — not an answer machine.\n\nLet's explore ideas, challenge assumptions, and discover what's really going on.\n\nWhat would you like to investigate together?",
+      content: "What made this idea stick with you?",
       timestamp: new Date(),
     },
   ]);
-  const [investigations, setInvestigations] = useState<InvestigationItem[]>([]);
-  const [showInvestigations, setShowInvestigations] = useState(false);
   const [isThinking, setIsThinking] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  // Load past investigations from SpyralSession
-  useEffect(() => {
-    SpyralSession.init();
-    const stored = SpyralSession.getInvestigations();
-    if (stored && stored.length > 0) {
-      setInvestigations(stored.map((inv) => ({
-        question: inv.question,
-        hypotheses: inv.competingHypotheses,
-        evidence: inv.evidence,
-        unknowns: inv.unknownVariables,
-        experiments: inv.experiments.map((e) => e.name),
-        followUp: inv.nextInvestigation,
-        timestamp: inv.createdAt,
-      })));
-    }
-  }, []);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
-
-  const loadInvestigation = (inv: InvestigationItem) => {
-    setMessages([
-      {
-        id: "welcome",
-        role: "agent",
-        content: "I'm your research partner — not an answer machine.\n\nLet's explore ideas, challenge assumptions, and discover what's really going on.\n\nWhat would you like to investigate together?",
-        timestamp: new Date(),
-      },
-      {
-        id: `user-${inv.timestamp}`,
-        role: "user",
-        content: inv.question,
-        timestamp: new Date(inv.timestamp),
-      },
-    ]);
-    setShowInvestigations(false);
-  };
 
   const handleSubmit = async () => {
     if (!prompt.trim() || isThinking) return;
@@ -98,51 +48,11 @@ export default function ResearchAgentPage() {
     setMessages((prev) => [...prev, userMsg]);
     setIsThinking(true);
 
-    // Use the Cognitive Core
     const cognitiveResponse = SpyralCognitiveCore.think({
       input: prompt,
       agentType: "research",
       researchMode: "discovery",
     });
-
-    // Build investigation structure
-    const inv: InvestigationItem = {
-      question: prompt,
-      hypotheses: cognitiveResponse.sop.facts.slice(0, 3).map(f => f) || [
-        "Exploring initial hypothesis based on your question",
-        "Considering alternative explanations",
-        "Looking for underlying patterns",
-      ],
-      evidence: cognitiveResponse.sop.assumptions.slice(0, 3).map(a => a) || [
-        "Gathering initial observations",
-        "Reviewing known information",
-      ],
-      unknowns: cognitiveResponse.lde.hiddenVariables.slice(0, 3).map(h => h) || [
-        "What information might we be missing?",
-        "Are there factors we haven't considered?",
-      ],
-      experiments: cognitiveResponse.sae.immediateActions.slice(0, 3).map(a => a.action) || [
-        "Investigate deeper into the patterns discovered",
-        "Seek alternative perspectives on this topic",
-      ],
-      followUp: `Based on what we've learned, I'd ask: What new questions does this raise for you?`,
-      timestamp: Date.now(),
-    };
-
-    // Auto-save to SpyralSession
-    SpyralSession.init();
-    SpyralSession.startInvestigation(prompt, `Research: ${prompt.slice(0, 60)}`);
-
-    const allInvestigations = SpyralSession.getInvestigations();
-    setInvestigations(allInvestigations.map((i) => ({
-      question: i.question,
-      hypotheses: i.competingHypotheses,
-      evidence: i.evidence,
-      unknowns: i.unknownVariables,
-      experiments: i.experiments.map((e) => e.name),
-      followUp: i.nextInvestigation,
-      timestamp: i.createdAt,
-    })));
 
     const agentMsg: Message = {
       id: `agent-${Date.now()}`,
@@ -172,27 +82,16 @@ export default function ResearchAgentPage() {
             <span className="text-2xl">🔬</span>
             <div>
               <h1 className="text-lg font-semibold text-white">Research</h1>
-              <p className="text-xs text-zinc-500">Investigation never finishes — it only deepens</p>
+              <p className="text-xs text-zinc-500">Curiosity — not answers</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            {investigations.length > 0 && (
-              <button
-                onClick={() => setShowInvestigations(!showInvestigations)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-800 bg-zinc-900/40 text-zinc-400 hover:text-white hover:bg-zinc-800/60 hover:border-zinc-700 transition-all text-sm"
-              >
-                <Clock className="h-4 w-4" />
-                Past Investigations ({investigations.length})
-              </button>
-            )}
-            <Link
-              href="/"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-800 bg-zinc-900/40 text-zinc-400 hover:text-white hover:bg-zinc-800/60 hover:border-zinc-700 transition-all text-sm"
-            >
-              <Home className="h-4 w-4" />
-              Home
-            </Link>
-          </div>
+          <Link
+            href="/"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-800 bg-zinc-900/40 text-zinc-400 hover:text-white hover:bg-zinc-800/60 hover:border-zinc-700 transition-all text-sm"
+          >
+            <Home className="h-4 w-4" />
+            Home
+          </Link>
         </div>
       </div>
 
@@ -243,7 +142,7 @@ export default function ResearchAgentPage() {
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="What would you like to investigate?"
+              placeholder="What made this idea stick with you?"
               className="flex-1 bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-sm text-white placeholder-zinc-600 resize-none focus:outline-none focus:border-zinc-700 transition-colors"
               rows={1}
             />

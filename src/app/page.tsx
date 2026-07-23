@@ -21,7 +21,7 @@ const AGENT_CARDS = [
   {
     icon: BookOpen,
     title: "Research",
-    subtitle: "Investigate ideas and discover new knowledge.",
+    subtitle: "Explore ideas and understand what's really going on.",
     href: "/research",
     gradient: "from-blue-600/20 via-blue-500/5 to-transparent",
     borderColor: "border-blue-500/20 hover:border-blue-500/40",
@@ -39,7 +39,7 @@ const AGENT_CARDS = [
   {
     icon: Compass,
     title: "Navigation",
-    subtitle: "Move from your current reality to your desired reality.",
+    subtitle: "Figure out where you are and how to get where you want to be.",
     href: "/navigate",
     gradient: "from-amber-600/20 via-amber-500/5 to-transparent",
     borderColor: "border-amber-500/20 hover:border-amber-500/40",

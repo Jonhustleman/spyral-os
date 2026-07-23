@@ -408,8 +408,8 @@ class SpyralCognitiveCoreImpl {
     // The self-critique is NOT shown to the user — it's a silent quality gate.
     // UX indicators (stage labels) are handled by the page UI.
     const selfCritique = this.selfCritique(response, intent);
-    // If self-critique found issues, silently revise the response
-    if (selfCritique.includes("⚠")) {
+    // If self-review found issues, silently revise the response
+    if (!selfCritique.includes("ok")) {
       // Silently adjust: make response more inquiry-focused by appending a question
       response = response + "\n\nWhat do you think?";
     }
@@ -1310,12 +1310,13 @@ class SpyralCognitiveCoreImpl {
     };
   }
 
-  // ─── SELF-CRITIQUE (PHASE F.1) ───────────────────────────────────────
+  // ─── SELF-REVIEW (INTERNAL QUALITY GATE) ────────────────────────────
 
   /**
-   * selfCritique() — Before every response, review and revise.
-   * Asks internally: Did I answer too quickly? Did I challenge assumptions?
-   * Did I investigate enough? Did I produce value? Did I just repeat information?
+   * selfReview() — Before every response, silently review.
+   * Checks: Did I answer too quickly? Did I challenge assumptions?
+   * Did I produce value? Am I being curious enough?
+   * Returns internal notes only, never shown to users.
    */
   private selfCritique(response: string, intent: CognitiveIntent): string {
     const critiques: string[] = [];
@@ -1323,40 +1324,39 @@ class SpyralCognitiveCoreImpl {
 
     // Check: Did I answer too quickly?
     if (intent.reasoningStrategy === "discovery" && intent.requiresInvestigation) {
-      if (!responseLower.includes("?") && !responseLower.includes("investigate") && !responseLower.includes("explore")) {
-        critiques.push("⚠ I notice I started answering instead of investigating. Let me step back.");
+      if (!responseLower.includes("?")) {
+        critiques.push("response lacks a question — needs more inquiry");
       }
     }
 
     // Check: Did I challenge assumptions?
     if (intent.reasoningStrategy === "decision" || intent.reasoningStrategy === "discovery") {
       if (!responseLower.includes("assum") && !responseLower.includes("question") && !responseLower.includes("challenge")) {
-        critiques.push("⚠ I should challenge assumptions more directly. Let me reconsider.");
+        critiques.push("response lacks challenge to assumptions");
       }
     }
 
     // Check: Did I produce value or just repeat?
     if (response.length < 100 && intent.complexity !== "low") {
-      critiques.push("⚠ My response seems too brief for the complexity of this topic. Let me expand.");
+      critiques.push("response too brief for topic complexity");
     }
 
     // Check: Am I being curious enough?
     if (intent.reasoningStrategy === "discovery" && !responseLower.includes("?")) {
-      critiques.push("⚠ I didn't ask a question. Discovery requires dialogue. Let me engage.");
+      critiques.push("no question asked — discovery needs dialogue");
     }
 
     // Check: Am I pretending certainty?
     if (intent.uncertainty === "high" && (responseLower.includes("definitely") || responseLower.includes("certainly"))) {
-      critiques.push("⚠ I sound too certain for a topic with high uncertainty. Let me acknowledge the unknowns.");
+      critiques.push("sounds too certain for high-uncertainty topic");
     }
 
     // Apply revision: prepend the most important critique
     if (critiques.length > 0) {
-      return `[Self-Review: ${critiques[0]}]`;
+      return `review: ${critiques[0]}`;
     }
 
-    // No issues found
-    return "[Self-Review: Response is aligned with intent. No revision needed.]";
+    return "review: ok";
   }
 
   // ─── 12. RESPOND ──────────────────────────────────────────────────────
@@ -1395,214 +1395,145 @@ class SpyralCognitiveCoreImpl {
     const mode = input.researchMode || "discovery";
 
     if (mode === "discovery") {
-      return `That's an interesting direction to explore.
-
-There are a few ways we could approach this — what stands out to you most right now?
-
-${this.buildFollowUpQuestion(input)}`;
+      const questions = [
+        "What made this idea stick with you?",
+        "If we understood this completely, what would change?",
+        "What's the biggest assumption people make about this?",
+        "Where would we start if we wanted to test this?",
+        "What part of this fascinates you most?",
+      ];
+      const index = input.input.length % questions.length;
+      return questions[index];
     }
 
     if (mode === "experiment") {
-      return `Let's design a way to test this.
-
-A few things to consider as starting points:
-${sve.assumptionsIdentified.slice(0, 2).map((a) => `• ${a}`).join("\n")}
-
-And some experiments worth trying:
-${sae.experiments.map((e) => `• ${e}`).join("\n")}
-
-Which hypothesis feels most worth testing first?`;
+      return `The interesting part about this is figuring out what we'd actually need to observe to know we're on the right track. What would a meaningful test look like from where you're standing?`;
     }
 
     if (mode === "literature") {
-      return `Here's what I know so far:
-
-${ste.strategies.map((s) => `• ${s.title}: ${s.description.substring(0, 100)}...`).join("\n")}
-
-What aspects of this are most important to explore further?`;
+      return `There's probably more written about this than anyone could read in a lifetime. The real question is which parts actually matter for what you're trying to do. What's the core question you're hoping existing knowledge can answer?`;
     }
 
     if (mode === "theory") {
-      return `Let's think about this from different angles.
-
-Some assumptions worth examining:
-${sve.assumptionsIdentified.map((a) => `• ${a}`).join("\n")}
-
-Alternative ways to look at this:
-${sve.alternativeExplanations.map((a) => `• ${a}`).join("\n")}
-
-What if we started from a completely different premise?
-
-What theoretical direction feels most promising to you?`;
+      return `Sometimes the best way forward is to flip the whole thing upside down. If we assumed everything conventional about this is wrong — where would we start looking instead?`;
     }
 
     if (mode === "report") {
-      return `Here's what I'm seeing so far:
-
-${ste.strategies.map((s, i) => `${i + 1}. ${s.title}: ${s.description.substring(0, 80)}...`).join("\n")}
-
-${ste.strategies[0]?.title ? `The initial direction that seems most worth pursuing: **${ste.strategies[0].title}**` : ""}
-
-Would you like to dive deeper into any of these?`;
+      return `A few angles worth surfacing here. Though honestly, the most valuable thing isn't a summary of what's known — it's figuring out what's missing. What question, if answered, would change everything?`;
     }
 
     if (mode === "debate") {
-      return `Let me play with some different perspectives on this.
-
-**One way to see it:**
-${ste.strategies[0]?.advantages.join(", ") || "This approach has several benefits"}
-
-**Another way to see it:**
-${ste.strategies[1]?.disadvantages.join(", ") || "There are also risks to consider"}
-
-**What's missing from both views:**
-${sve.missingEvidence.slice(0, 2).join("\n")}
-
-What's the strongest argument against your current position on this?`;
+      return `Let me play with this for a moment. There's a case to be made for the conventional view — it's conventional for a reason. But the most interesting insights usually come from the arguments against it. What's the strongest criticism of your current position that you've encountered?`;
     }
 
-    return `That's worth investigating. What aspect would you like to explore first?`;
+    const fallbacks = [
+      "That's a fascinating direction. What draws you to it?",
+      "There's something interesting lurking here. What's the first thread you want to pull?",
+      "This is one of those topics where the deeper you go, the more interesting it gets. Where should we start?",
+    ];
+    return fallbacks[input.input.length % fallbacks.length];
   }
 
   private buildContentResponse(input: ThinkInput, understanding: string, recommendation: string, intent: CognitiveIntent): string {
     const strategy = intent.reasoningStrategy;
 
     if (strategy === "creation") {
-      return `Before we create anything, let's make sure I understand what you're going for.
-
-A great piece of content starts with clarity on a few things:
-
-1. Who are we trying to reach?
-2. What platform or medium makes sense?
-3. What's the real goal — awareness, engagement, conversion, or something else?
-4. What tone or voice fits best?
-
-Once you share those, I'll develop a full creative direction including brief, storyboard, hooks, and production-ready assets.`;
+      const questions = [
+        "What reaction do you want someone to have after experiencing this?",
+        "If this content worked perfectly, what would someone feel? Think? Do?",
+        "What's the one thing you need people to understand that they don't already?",
+        "Who is this really for — and what keeps them up at night?",
+        "What's the story here that only you can tell?",
+      ];
+      const index = input.input.length % questions.length;
+      return questions[index];
     }
 
-    return `I want to make sure I get this right before we start creating.
-
-The most effective content starts with understanding the audience and the change we're trying to make.
-
-A few things that would help:
-1. Who is the target audience?
-2. What platform are you creating for?
-3. What's the primary goal — awareness, engagement, conversion, or education?
-
-Once you share these, I'll put together a complete content strategy with creative brief, storyboard, hooks, and production-ready assets.`;
+    const fallbacks = [
+      "Before we figure out the format, let's figure out the feeling. What should someone walk away feeling after they've seen this?",
+      "The best content starts with a truth that needs to be shared. What truth are you sitting on?",
+      "Let's skip the strategy deck for a second. What would you make if there were no constraints at all?",
+    ];
+    return fallbacks[input.input.length % fallbacks.length];
   }
 
   private buildConsultantResponse(input: ThinkInput, ste: STEResult, sve: SVEResult, _sae: SAEResult, recommendation: string, intent: CognitiveIntent): string {
     const strategy = intent.reasoningStrategy;
 
     if (strategy === "decision") {
-      return `This is a good situation to think through carefully.
+      return `This feels like one of those situations where there's no perfect answer — just trade-offs. The path you choose says more about what you value than what's objectively right. Before we weigh options, what matters most to you in this decision?
 
-**A few assumptions I'm questioning:**
-${sve.assumptionsIdentified.map((a) => `• ${a}`).join("\n")}
-
-**Worth considering from different angles:**
-${sve.alternativeExplanations.slice(0, 2).map((v, i) => `• ${v}`).join("\n")}
-
-**Trade-offs I can see:**
-${ste.strategies.slice(0, 2).map((s) => `• ${s.title}: ${s.advantages.length} upsides, ${s.disadvantages.length} downsides to weigh`).join("\n")}
-
-**What I'd recommend based on what I know:**
-${recommendation}
-
-**But before we settle on that — tell me more:**
 ${this.buildConsultantFollowUp(input)}`;
     }
 
-    return `Let's think through this together.
-
-**What I'm seeing:**
-${ste.strategies.map((s) => `• ${s.title}`).join("\n")}
-
-**What I'm questioning:**
-${sve.assumptionsIdentified.map((a) => `• ${a}`).join("\n")}
-
-**Another way to frame this:**
-${sve.alternativeExplanations[0] || "Let me challenge how you're thinking about this."}
-
-${recommendation ? `**A direction worth considering:**\n${recommendation}` : ""}
-
-**To help me think with you more effectively:**
-${this.buildConsultantFollowUp(input)}`;
+    const questions = [
+      "What's the real challenge here — not the surface problem, but the thing underneath?",
+      "If you could wave a wand and have this solved, what would be different?",
+      "What have you already tried that hasn't worked, and what did that teach you?",
+      "Who else sees this situation differently, and what might they be right about?",
+    ];
+    const index = input.input.length % questions.length;
+    return questions[index];
   }
 
   private buildNavigationResponse(input: ThinkInput, ste: STEResult, sve: SVEResult, _sae: SAEResult, intent: CognitiveIntent): string {
     const strategy = intent.reasoningStrategy;
 
     if (strategy === "planning") {
-      return `Let's map out where you are and where you want to be.
-
-**What I'm noticing about your current situation:**
-${ste.strategies.map((s, i) => `${i + 1}. ${s.title}`).join("\n")}
-
-**Gaps worth thinking about:**
-${sve.alternativeExplanations.slice(0, 2).map((g) => `• ${g}`).join("\n")}
-
-**A path worth considering:**
-${ste.strategies[0]?.title || "Structured navigation"}
-
-**To build a complete plan, it would help to know:**
-• Where are you starting from?
-• Where do you want to get to?
-• What resources do you have available?
-
-Once I understand those, I'll lay out a clear path forward with milestones, execution steps, and success metrics.`;
+      return `The hardest part of any journey isn't the distance — it's knowing which direction actually matters. Where are you right now, and what's telling you it's time to move?`;
     }
 
-    return `Let's figure out the path from where you are to where you want to be.
-
-**What I'm seeing:**
-${ste.strategies.map((s, i) => `${i + 1}. ${s.title} — ${s.description.substring(0, 80)}...`).join("\n")}
-
-**The direction that stands out most:**
-${ste.strategies[0]?.title || "Structured navigation"}
-
-**To build your full plan, tell me:**
-• Where are you now?
-• Where do you want to be?
-• What's the gap between them?`;
+    const questions = [
+      "If you could be exactly where you want to be six months from now, what would that look like?",
+      "What's the biggest obstacle between where you are and where you want to be?",
+      "What have you already figured out about the path forward?",
+      "What's the smallest step you could take right now that would create momentum?",
+      "Who's already made this journey that you could learn from?",
+    ];
+    const index = input.input.length % questions.length;
+    return questions[index];
   }
 
   private buildGenericResponse(input: ThinkInput, understanding: string, recommendation: string, _sae: SAEResult, intent: CognitiveIntent): string {
     const strategy = intent.reasoningStrategy;
     if (strategy === "discovery") {
-      return `Let's explore this together.
-
-${understanding}
-
-I'm here to investigate with you — not to give you a finished answer.
-
-What's the first thread you'd like to pull?`;
+      const questions = [
+        "I'd love to explore this with you. Where should we start?",
+        "This is one of those topics where the more you question, the more interesting it gets. What's the first thing that comes to mind?",
+        "Let's think about this together. What part of it feels most alive to you right now?",
+      ];
+      const index = input.input.length % questions.length;
+      return questions[index];
     }
-    return `${understanding}\n\n${recommendation}\n\nHow would you like to proceed?`;
+    const fallbacks = [
+      "I've been turning this over. What do you think is the right next step?",
+      "There are a few ways to look at this. Which one feels most true to you?",
+      "Let's sit with this for a moment. What does your intuition tell you?",
+    ];
+    const index = input.input.length % fallbacks.length;
+    return fallbacks[index];
   }
 
   private buildFollowUpQuestion(input: ThinkInput): string {
     const questions = [
-      "What sparked your interest in this topic?",
-      "What have you already observed or discovered?",
-      "What makes this question important to you right now?",
-      "Is there a specific angle you want to explore first?",
-      "What assumptions might we challenge together?",
+      "What made this idea stick with you?",
+      "If we understood this completely, what would change?",
+      "What's the biggest assumption people make about this?",
+      "What part of this fascinates you most?",
+      "Where would we start if we wanted to test this?",
     ];
 
-    // Use the input to pick a relevant question
     const index = input.input.length % questions.length;
     return questions[index];
   }
 
   private buildConsultantFollowUp(input: ThinkInput): string {
     const questions = [
-      "What have you already tried that hasn't worked?",
-      "What's at stake if this isn't addressed?",
-      "Who else is affected by this situation?",
-      "What would success look like in 90 days?",
-      "What resources do you have available?",
+      "What would need to be true for this to succeed?",
+      "What's the cost of not addressing this?",
+      "Who benefits most from things staying as they are?",
+      "What have you already tried that hasn't worked, and what did that teach you?",
+      "If you knew you couldn't fail, what would you try?",
     ];
 
     const index = input.input.length % questions.length;

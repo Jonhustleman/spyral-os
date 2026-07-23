@@ -31,8 +31,6 @@ export default function CommandCenterPage() {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [patterns, setPatterns] = useState<any[]>([]);
   const [navSessions, setNavSessions] = useState<any[]>([]);
-  const [showUnderstanding, setShowUnderstanding] = useState(false);
-  const [lastUnderstanding, setLastUnderstanding] = useState<string>("");
   const [activeMission, setActiveMission] = useState("");
   const [activeInvestigation, setActiveInvestigation] = useState("");
 
@@ -54,14 +52,11 @@ export default function CommandCenterPage() {
   const handleCommand = () => {
     if (!command.trim()) return;
 
-    // SPYRAL thinks before routing — understand intent via Cognitive Core
-    const cognitive = SpyralCognitiveCore.think({
+    // Understand intent via Cognitive Core
+    SpyralCognitiveCore.think({
       input: command,
       agentType: "command",
     });
-    setLastUnderstanding(cognitive.understanding);
-    setShowUnderstanding(true);
-    setTimeout(() => setShowUnderstanding(false), 3000);
 
     const cmd = command.toLowerCase();
     if (cmd.includes("research") || cmd.includes("investigate") || cmd.includes("analyze")) {
@@ -260,12 +255,12 @@ export default function CommandCenterPage() {
             </div>
           </div>
 
-          {/* Reality Cycles */}
+          {/* Navigation Sessions */}
           <div className="rounded-xl border border-zinc-800 bg-zinc-900/40">
             <div className="px-5 py-4 border-b border-zinc-800 flex items-center justify-between">
               <h2 className="text-sm font-semibold text-white flex items-center gap-2">
                 <Compass className="h-4 w-4" />
-                Reality Cycles
+                Navigation
               </h2>
               <Link href="/navigate" className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors">
                 Start new
@@ -282,7 +277,7 @@ export default function CommandCenterPage() {
                     >
                       <div className="min-w-0">
                         <p className="text-sm font-medium text-white truncate">{s.prompt?.substring(0, 60) || "Navigation session"}</p>
-                        <p className="text-xs text-zinc-500">Stage: {s.stage || "In progress"}</p>
+                        <p className="text-xs text-zinc-500">In progress</p>
                       </div>
                       <ArrowRight className="h-4 w-4 text-zinc-600 shrink-0 ml-2" />
                     </Link>
@@ -294,7 +289,7 @@ export default function CommandCenterPage() {
                   className="flex items-center gap-2 p-3 rounded-lg border border-dashed border-zinc-800 text-sm text-zinc-500 hover:text-zinc-300 hover:border-zinc-700 transition-colors"
                 >
                   <Plus className="h-4 w-4" />
-                  Start a reality cycle
+                  Start a navigation
                 </Link>
               )}
             </div>
@@ -317,17 +312,13 @@ export default function CommandCenterPage() {
                   {patterns.map((p) => (
                     <div key={p.id} className="p-3 rounded-lg border border-zinc-800/60">
                       <p className="text-sm font-medium text-white">{p.title || p.description}</p>
-                      {p.confidence && (
-                        <p className="text-xs text-zinc-500 mt-0.5">
-                          Confidence: {Math.round(p.confidence * 100)}%
-                        </p>
-                      )}
+
                     </div>
                   ))}
                 </div>
               ) : (
                 <p className="text-sm text-zinc-600 text-center py-4">
-                  Patterns will appear as you use SPYRAL agents
+                  Patterns will appear as you explore and think
                 </p>
               )}
             </div>
@@ -415,7 +406,7 @@ export default function CommandCenterPage() {
             </div>
             <div className="p-5">
               <p className="text-sm text-zinc-600 text-center py-4">
-                Predictions will appear after completing reality cycles
+                Predictions will appear as patterns emerge from your work
               </p>
               <Link
                 href="/navigate"

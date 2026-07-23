@@ -21,28 +21,28 @@ const useCases = [
   {
     icon: Sparkles,
     title: "Content Creation",
-    description: "Plan, script, and produce high-impact content with AI-powered creative direction.",
+    description: "Develop creative direction that connects with the people who matter.",
     color: "text-purple-400",
     bg: "bg-purple-500/10 border-purple-500/20",
   },
   {
     icon: Brain,
     title: "Research & Intelligence",
-    description: "Investigate topics, find patterns, and build structured intelligence reports.",
+    description: "Explore ideas, connect what you find, and understand what's really going on.",
     color: "text-blue-400",
     bg: "bg-blue-500/10 border-blue-500/20",
   },
   {
     icon: Compass,
     title: "Goal Navigation",
-    description: "Navigate complex goals with the Reality Cycle — sense, predict, yield, record, adapt, learn.",
+    description: "Figure out where you are, where you want to be, and how to bridge the gap.",
     color: "text-amber-400",
     bg: "bg-amber-500/10 border-amber-500/20",
   },
   {
     icon: Briefcase,
     title: "Strategic Consulting",
-    description: "Get elite strategic advice from an AI consultant that thinks like a CEO advisor.",
+    description: "Work through complex challenges with a thinking partner who challenges your assumptions.",
     color: "text-emerald-400",
     bg: "bg-emerald-500/10 border-emerald-500/20",
   },
@@ -51,10 +51,10 @@ const useCases = [
 // ─── Workflow Steps ────────────────────────────────────────────────────────
 
 const workflow = [
-  { step: "1", label: "Tell SPYRAL your goal", desc: "Describe what you want to achieve in plain language." },
-  { step: "2", label: "SPYRAL asks questions", desc: "The agent clarifies intent and gathers context." },
-  { step: "3", label: "Get your strategy", desc: "Receive a structured plan with analysis, recommendations, and next actions." },
-  { step: "4", label: "Execute & adapt", desc: "Follow the plan, track results, and let SPYRAL learn from outcomes." },
+  { step: "1", label: "Share what you're working on", desc: "Describe what you want to explore or achieve." },
+  { step: "2", label: "Explore together", desc: "Thoughtful questions to deepen understanding." },
+  { step: "3", label: "Gain clarity", desc: "Surface insights, perspectives, and directions worth pursuing." },
+  { step: "4", label: "Take action", desc: "Move forward with confidence and adapt as you go." },
 ];
 
 // ─── Landing Page ──────────────────────────────────────────────────────────

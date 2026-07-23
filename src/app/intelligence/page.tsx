@@ -9,7 +9,7 @@ import {
   Copy, Check, BookOpen
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { SpyralCognitiveCore, CONFIDENCE_MAX } from "@/core";
+import { SpyralCognitiveCore } from "@/core";
 
 type ViewSection = "all" | "patterns" | "strategies" | "research" | "predictions" | "recommendations" | "timeline";
 
@@ -52,7 +52,7 @@ export default function IntelligencePage() {
         <div>
           <h1 className="text-xl font-semibold text-white">Intelligence</h1>
           <p className="text-sm text-zinc-500">
-            Knowledge Graph · Research Archive · Patterns · Strategies · Predictions · Recommendations
+            What's been learned, what's emerging, what's next
           </p>
         </div>
         <Link
@@ -95,7 +95,7 @@ export default function IntelligencePage() {
               <h2 className="text-lg font-semibold text-white">Knowledge Graph</h2>
             </div>
             <p className="text-sm text-zinc-500 mb-6">
-              Connections between patterns, strategies, research findings, and recommendations discovered across SPYRAL.
+              Patterns, insights, and directions building across everything we've explored together.
             </p>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
               <div className="rounded-lg bg-purple-500/10 border border-purple-500/20 p-3 text-center">
@@ -129,7 +129,7 @@ export default function IntelligencePage() {
                 <Brain className="h-10 w-10 mx-auto text-zinc-600 mb-3" />
                 <p className="text-zinc-500">No intelligence records yet</p>
                 <p className="text-xs text-zinc-600 mt-2">
-                  Intelligence will be generated as you research, create, and navigate with SPYRAL agents
+                  Intelligence will appear as you explore, create, and think through your ideas
                 </p>
               </div>
             ) : (
@@ -148,7 +148,6 @@ export default function IntelligencePage() {
                         <p className="text-sm text-zinc-400 mt-0.5">{p.description || p.title}</p>
                         <div className="flex items-center gap-3 mt-2 text-xs text-zinc-600">
                           <span>Pattern</span>
-                          {p.confidence && <span>Relevance: {Math.round(p.confidence * 100)}%</span>}
                           {p.timestamp && <span>{new Date(p.timestamp).toLocaleDateString()}</span>}
                         </div>
                       </div>
@@ -169,7 +168,7 @@ export default function IntelligencePage() {
                         <p className="text-sm text-zinc-400 mt-0.5">{i.description || i.title}</p>
                         <div className="flex items-center gap-3 mt-2 text-xs text-zinc-600">
                           <span>Insight</span>
-                          {i.confidence && <span>Relevance: {Math.round(i.confidence * 100)}%</span>}
+
                         </div>
                       </div>
                     </button>
@@ -215,17 +214,7 @@ export default function IntelligencePage() {
                   <div className="flex-1 min-w-0">
                     <h3 className="font-medium text-white">{p.title || p.description}</h3>
                     <p className="text-sm text-zinc-400 mt-1">{p.description || p.title}</p>
-                    {p.confidence && (
-                      <div className="flex items-center gap-2 mt-3">
-                        <div className="flex-1 h-1.5 rounded-full bg-zinc-800 overflow-hidden">
-                          <div
-                            className="h-full rounded-full bg-purple-500"
-                            style={{ width: `${Math.round(p.confidence * 100)}%` }}
-                          />
-                        </div>
-                        <span className="text-xs text-zinc-500">{Math.round(p.confidence * 100)}% confidence</span>
-                      </div>
-                    )}
+
                   </div>
                 </div>
               </div>
@@ -234,7 +223,7 @@ export default function IntelligencePage() {
             <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-8 text-center">
               <TrendingUp className="h-10 w-10 mx-auto text-zinc-600 mb-3" />
               <p className="text-zinc-500">No patterns discovered yet</p>
-              <p className="text-xs text-zinc-600 mt-2">Patterns emerge from research and navigation cycles</p>
+              <p className="text-xs text-zinc-600 mt-2">Patterns emerge naturally as you explore and think</p>
             </div>
           )}
         </div>
@@ -283,7 +272,7 @@ export default function IntelligencePage() {
           <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-8 text-center">
             <BarChart3 className="h-10 w-10 mx-auto text-zinc-600 mb-3" />
             <p className="text-zinc-500">No predictions yet</p>
-            <p className="text-xs text-zinc-600 mt-2">Predictions are generated from navigation cycles and research</p>
+            <p className="text-xs text-zinc-600 mt-2">Predictions come from connecting what you've learned across sessions</p>
             <Link
               href="/navigate"
               className="inline-flex items-center gap-1 text-xs text-amber-400 hover:text-amber-300 mt-3 transition-colors"
@@ -339,7 +328,7 @@ export default function IntelligencePage() {
           <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-8 text-center">
             <Clock className="h-10 w-10 mx-auto text-zinc-600 mb-3" />
             <p className="text-zinc-500">Timeline will show your learning journey across sessions</p>
-            <p className="text-xs text-zinc-600 mt-2">Records will populate as you use SPYRAL agents</p>
+            <p className="text-xs text-zinc-600 mt-2">Records will populate as you explore and learn</p>
           </div>
         </div>
       )}
