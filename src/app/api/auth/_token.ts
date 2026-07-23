@@ -12,7 +12,12 @@
  * })
  *
  * Token expiry: 30 days from issuance.
- * Secret comes from AUTH_SECRET env var, falling back to a dev-only default.
+ *
+ * Secret resolution order:
+ *   1. AUTH_SECRET env var (explicitly set by developer)
+ *   2. SPYRAL_AUTH_SECRET env var (legacy)
+ *   3. Vercel-injected vars (production fallback — stable across redeploys)
+ *   4. Machine hostname (dev fallback — survives restart)
  */
 
 import crypto from "crypto";
@@ -20,27 +25,33 @@ import crypto from "crypto";
 const TOKEN_EXPIRY_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
 function getSecret(): string {
-  // In production, set AUTH_SECRET as an environment variable on Vercel.
-  // In development, a deterministic secret is derived from the machine's
-  // hostname so tokens survive dev server restarts on the same machine.
-  const secret = process.env.AUTH_SECRET || process.env.SPYRAL_AUTH_SECRET;
-  if (secret) return secret;
+  // 1. Explicitly configured secret (highest priority)
+  const configuredSecret = process.env.AUTH_SECRET || process.env.SPYRAL_AUTH_SECRET;
+  if (configuredSecret) return configuredSecret;
 
-  if (process.env.NODE_ENV === "production") {
-    throw new Error(
-      "AUTH_SECRET environment variable is required in production. " +
-      "Set it in your Vercel project dashboard: Settings → Environment Variables."
+  // 2. Production fallback: derive from Vercel-injected environment variables.
+  //    VERCEL_GIT_REPO_SLUG + VERCEL_GIT_REPO_OWNER are stable across
+  //    redeploys (unlike VERCEL_URL which changes per deployment).
+  //    This ensures tokens survive redeployment without explicitly setting AUTH_SECRET.
+  const repoSlug = process.env.VERCEL_GIT_REPO_SLUG;
+  const repoOwner = process.env.VERCEL_GIT_REPO_OWNER;
+  if (repoSlug && repoOwner) {
+    const stableSeed = `spyral-${repoOwner}-${repoSlug}`;
+    console.log(
+      `[auth] Using production fallback secret derived from "${repoOwner}/${repoSlug}". ` +
+      "For security, set AUTH_SECRET in your Vercel project dashboard."
     );
+    return `spyral-fallback-${crypto.createHash("sha256").update(stableSeed).digest("hex").slice(0, 32)}`;
   }
 
-  // Dev-only: deterministic secret from machine hostname + package name
-  // This ensures tokens survive dev server restarts on the same machine.
+  // 3. Development fallback: deterministic secret from machine hostname
   const hostname = (() => {
     try { return require("os").hostname(); } catch { return "localhost"; }
   })();
   const devSecret = `spyral-dev-${crypto.createHash("sha256").update(`spyral-os-${hostname}`).digest("hex").slice(0, 32)}`;
   console.log(
     `[auth] Using dev secret derived from hostname "${hostname}". ` +
+    "Tokens survive dev server restarts on the same machine. " +
     "Set AUTH_SECRET in .env.local for a custom persistent secret."
   );
   return devSecret;

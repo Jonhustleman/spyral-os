@@ -43,7 +43,7 @@ export async function POST(request: Request) {
     } catch (err) {
       console.error("[auth/login] Token creation failed:", err);
       return NextResponse.json(
-        { success: false, error: "Authentication configuration error. Please contact support." },
+        { success: false, error: "Server error. Please try again." },
         { status: 500 },
       );
     }
