@@ -99,8 +99,8 @@ export function RecommendationsView({ recommendations }: RecommendationsViewProp
                     </p>
                   )}
                   <p className="text-xs text-zinc-600">
-                    <span className="text-zinc-500">Confidence: </span>
-                    {Math.round(rec.explanation.confidence * 100)}%
+                    <span className="text-zinc-500">Status: </span>
+                    {rec.status}
                   </p>
                 </div>
               </div>

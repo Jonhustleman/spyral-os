@@ -27,6 +27,8 @@ export interface ComposerContext {
   recentMemories?: string[];
   /** User's name for personalization */
   userName?: string;
+  /** Number of turns in the current conversation */
+  turnCount?: number;
 }
 
 /**

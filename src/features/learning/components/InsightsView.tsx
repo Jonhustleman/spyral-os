@@ -17,14 +17,6 @@ interface InsightsViewProps {
   insights: Insight[];
 }
 
-// ─── Confidence color helper ────────────────────────────────────────────
-
-function confidenceColor(value: number): string {
-  if (value >= 0.7) return "text-emerald-400";
-  if (value >= 0.4) return "text-amber-400";
-  return "text-red-400";
-}
-
 // ─── Component ──────────────────────────────────────────────────────────
 
 export function InsightsView({ insights }: InsightsViewProps) {
@@ -45,8 +37,6 @@ export function InsightsView({ insights }: InsightsViewProps) {
   return (
     <div className="space-y-3">
       {insights.map((insight) => {
-        const pct = Math.round(insight.confidence * 100);
-
         return (
           <div
             key={insight.id}
@@ -80,9 +70,6 @@ export function InsightsView({ insights }: InsightsViewProps) {
               </div>
 
               <div className="flex items-center gap-2 shrink-0">
-                <span className={`text-xs font-medium ${confidenceColor(insight.confidence)}`}>
-                  {pct}%
-                </span>
                 {insight.category && (
                   <span className="text-xs bg-zinc-800 text-zinc-400 px-1.5 py-0.5 rounded">
                     {insight.category}

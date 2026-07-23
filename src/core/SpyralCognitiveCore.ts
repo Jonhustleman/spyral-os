@@ -408,13 +408,13 @@ class SpyralCognitiveCoreImpl {
     const learning = this.learn(mentalModel, sop, lde, sve);
 
     // ─── BUILD RESPONSE ────────────────────────────────────────────────
-    let response = this.respond(input, understanding, ste, sve, sae, recommendation, executionPlan, intent);
+    let response = this.respond(input, understanding, ste, sve, sae, recommendation, executionPlan, intent, retrievedMemories);
 
     // ─── SELF-CRITIQUE (PHASE F.1) ─────────────────────────────────────
     // Before returning, review and revise INTERNALLY.
     // The self-critique is NOT shown to the user — it's a silent quality gate.
     // UX indicators (stage labels) are handled by the page UI.
-    const selfCritique = this.selfCritique(response, intent);
+    const selfCritique = this.selfCritique(response, intent, input);
     // If self-review found issues, silently revise the response
     if (!selfCritique.includes("ok")) {
       // Silently adjust: make response more inquiry-focused by appending a question
@@ -597,62 +597,37 @@ class SpyralCognitiveCoreImpl {
     }
   }
 
-  // ─── 1. UNDERSTAND ─────────────────────────────────────────────────────
+  // ─── 1. UNDERSTAND (RC5.1: Concise, no templates) ──────────────────────
 
   understand(input: ThinkInput, intent: CognitiveIntent): string {
-    const text = input.input.toLowerCase();
     const strategy = intent.reasoningStrategy;
 
+    // Internal understanding — used only by the pipeline, never shown to users.
+    // Kept concise and factual. No template language.
     if (input.agentType === "research") {
-      if (input.researchMode === "experiment") {
-        return `The user wants to design experiments to investigate: "${input.input}". They are in Experiment Mode. Reasoning: ${strategy}.`;
-      }
-      if (input.researchMode === "literature") {
-        return `The user wants a literature review and summary of existing knowledge on: "${input.input}". They are in Literature Mode.`;
-      }
-      if (input.researchMode === "theory") {
-        return `The user wants to develop new theories around: "${input.input}". They are in Theory Mode. Reasoning: ${strategy}.`;
-      }
-      if (input.researchMode === "report") {
-        return `The user explicitly requested a report on: "${input.input}". Using REPORTING strategy.`;
-      }
-      if (input.researchMode === "debate") {
-        return `The user wants to challenge ideas from multiple perspectives on: "${input.input}". They are in Debate Mode.`;
-      }
-      // Default research: DISCOVERY — investigate, don't answer
-      return `The user wants to collaboratively investigate: "${input.input}". I determined this requires the ${strategy} strategy — I will investigate rather than immediately answer. This is an open-ended exploration.`;
+      if (input.researchMode === "experiment") return `Wants to design experiments. Strategy: ${strategy}.`;
+      if (input.researchMode === "literature") return `Wants to engage with existing knowledge. Strategy: ${strategy}.`;
+      if (input.researchMode === "theory") return `Wants to develop new frameworks. Strategy: ${strategy}.`;
+      if (input.researchMode === "report") return `Explicitly requested report. Strategy: ${strategy}.`;
+      if (input.researchMode === "debate") return `Wants multi-perspective challenge. Strategy: ${strategy}.`;
+      return `Collaborative investigation. Strategy: ${strategy}.`;
     }
-
     if (input.agentType === "content") {
-      if (strategy === "creation") {
-        return `The user wants to create content about: "${input.input}". Using CREATION strategy — research first, then strategy, then assets.`;
-      }
-      return `The user wants to create content about: "${input.input}". SPYRAL must first research, understand audience and positioning, THEN generate creative output.`;
+      return `Creative direction. Strategy: ${strategy}.`;
     }
-
     if (input.agentType === "consultant") {
-      if (strategy === "decision") {
-        return `The user needs a decision on: "${input.input}". Using DECISION strategy — challenge assumptions, evaluate trade-offs, recommend.`;
-      }
-      const isStrategic = /strategy|growth|scale|revenue|market/i.test(text);
-      const isProblem = /problem|challenge|issue|difficult|struggling/i.test(text);
-      if (isStrategic) return `The user is seeking strategic advice on: "${input.input}". SPYRAL must challenge assumptions, identify blind spots, and provide executive-level guidance.`;
-      if (isProblem) return `The user has a challenge they need help solving: "${input.input}". SPYRAL must diagnose root causes and provide actionable recommendations.`;
-      return `The user wants consulting advice on: "${input.input}". SPYRAL must analyze, diagnose, and recommend.`;
+      return `Strategic advising. Strategy: ${strategy}.`;
     }
-
     if (input.agentType === "navigation") {
-      return `The user wants to navigate from their current reality to a desired reality regarding: "${input.input}". Using PLANNING strategy — roadmap with milestones and execution.`;
+      return `Reality navigation. Strategy: ${strategy}.`;
     }
-
     if (input.agentType === "command") {
-      return `The user wants to: "${input.input}". This appears to be a ${intent.domain} question using a ${strategy} approach.`;
+      return `Command orchestration. Domain: ${intent.domain}. Strategy: ${strategy}.`;
     }
-
-    return `User input: "${input.input}". Intent: ${strategy} strategy in ${intent.domain} domain. Complexity: ${intent.complexity}. Depth: ${intent.reasoningDepth}.`;
+    return `Processing. Strategy: ${strategy}. Domain: ${intent.domain}. Complexity: ${intent.complexity}.`;
   }
 
-  // ─── 2. RETRIEVE MEMORY ───────────────────────────────────────────────
+  // ─── 2. RETRIEVE MEMORY (RC5.1: Natural references) ─────────────────
 
   retrieveMemory(input: ThinkInput): { agent: string; summary: string }[] {
     const memories = SharedContextStore.getMemories();
@@ -661,26 +636,27 @@ class SpyralCognitiveCoreImpl {
     // ─── GENOME CONTEXT INTEGRATION ───────────────────────────────────
     // Include patterns, timeline events, predictions, and knowledge
     // connections discovered by the GenomeBootloader from MemoryEngine.
+    // References are phrased naturally — never "I remembered..."
     const gc = SpyralCognitiveCoreImpl._genomeContext;
     if (gc) {
       for (const pattern of gc.patterns) {
         if (pattern) {
-          relevant.push({ agent: "genome", summary: `Pattern: ${pattern}` });
+          relevant.push({ agent: "genome", summary: pattern });
         }
       }
       for (const event of gc.timeline.slice(0, 3)) {
         if (event.summary) {
-          relevant.push({ agent: "genome", summary: `Previous: ${event.summary}` });
+          relevant.push({ agent: "genome", summary: event.summary });
         }
       }
       for (const pred of gc.predictions.slice(0, 2)) {
         if (pred) {
-          relevant.push({ agent: "genome", summary: `Prediction: ${pred}` });
+          relevant.push({ agent: "genome", summary: pred });
         }
       }
       for (const conn of gc.knowledgeConnections.slice(0, 3)) {
         if (conn) {
-          relevant.push({ agent: "genome", summary: `Related: ${conn}` });
+          relevant.push({ agent: "genome", summary: conn });
         }
       }
     }
@@ -703,7 +679,7 @@ class SpyralCognitiveCoreImpl {
       }
     }
 
-    // Also check patterns from LearningStore
+    // Check patterns from LearningStore — phrased naturally
     const patterns = LearningStore.getPatterns();
     for (const pattern of patterns) {
       const patternWords = pattern.title.toLowerCase().split(/\s+/);
@@ -711,7 +687,7 @@ class SpyralCognitiveCoreImpl {
       if (overlap.length >= 1) {
         relevant.push({
           agent: "system",
-          summary: `Pattern: ${pattern.title} (confidence: ${Math.round(pattern.confidence * 100)}%)`,
+          summary: pattern.title,
         });
       }
     }
@@ -972,10 +948,10 @@ class SpyralCognitiveCoreImpl {
       "Challenging assumptions leads to deeper understanding",
     ];
 
-    // Add patterns from LearningStore
+    // Add patterns from LearningStore — no confidence exposure
     const storedPatterns = LearningStore.getPatterns();
     for (const p of storedPatterns.slice(0, 3)) {
-      patterns.push(`Discovered pattern: ${p.title} (confidence: ${Math.round(p.confidence * 100)}%)`);
+      patterns.push(p.title);
     }
 
     const relationships: string[] = [
@@ -1218,7 +1194,7 @@ class SpyralCognitiveCoreImpl {
     };
   }
 
-  // ─── 9. SYNTHESIZE ────────────────────────────────────────────────────
+  // ─── 9. SYNTHESIZE (RC5.1: No confidence exposure) ──────────────────
 
   synthesize(
     mentalModel: MentalModel,
@@ -1229,36 +1205,18 @@ class SpyralCognitiveCoreImpl {
     _sae: SAEResult,
   ): string {
     const bestStrategy = ste.strategies[0];
-    let recommendation = `Based on SPYRAL's analysis, the recommended approach is: "${bestStrategy.title}".\n\n`;
-    recommendation += `${bestStrategy.description}\n\n`;
-    recommendation += `Key advantages: ${bestStrategy.advantages.join(", ")}.\n\n`;
-    recommendation += `Confidence in this recommendation: ${Math.round(sve.confidence * 100)}%.\n\n`;
-    recommendation += `Important considerations: ${sve.assumptionsIdentified.slice(0, 2).join(", ")}.`;
-
-    return recommendation;
+    return `Recommended approach: ${bestStrategy.title}. ${bestStrategy.description}`;
   }
 
-  // ─── 10. BUILD EXECUTION PLAN ─────────────────────────────────────────
+  // ─── 10. BUILD EXECUTION PLAN (RC5.1: Concise, no report headers) ───
 
   buildExecutionPlan(sae: SAEResult): string {
-    let plan = "SPYRAL Execution Plan:\n\n";
-
-    plan += "Immediate Actions:\n";
-    for (const action of sae.immediateActions) {
-      plan += `  • ${action.action} (${action.timeframe}, ${action.effort} effort, ${action.impact} impact)\n`;
-    }
-
-    plan += "\nExperiments to Validate:\n";
-    for (const exp of sae.experiments) {
-      plan += `  • ${exp}\n`;
-    }
-
-    plan += "\nLearning Opportunities:\n";
-    for (const lo of sae.learningOpportunities) {
-      plan += `  • ${lo}\n`;
-    }
-
-    return plan;
+    const immediate = sae.immediateActions
+      .slice(0, 2)
+      .map((a) => a.action)
+      .join("; ");
+    const experiments = sae.experiments.slice(0, 2).join("; ");
+    return `Immediate: ${immediate}. Validate: ${experiments}.`;
   }
 
   // ─── 11. LEARN ────────────────────────────────────────────────────────
@@ -1280,7 +1238,6 @@ class SpyralCognitiveCoreImpl {
     // Generate insights
     insightsGained.push(`Analyzed topic related to: "${mentalModel.goal.substring(0, 60)}"`);
     insightsGained.push(`Separated ${sop.facts.length} facts from ${sop.assumptions.length} assumptions`);
-    insightsGained.push(`Confidence in analysis: ${Math.round(sve.confidence * 100)}%`);
 
     // Store a learning record
     try {
@@ -1288,22 +1245,22 @@ class SpyralCognitiveCoreImpl {
         patternIds: [],
         description: `Cognitive analysis: ${mentalModel.goal.substring(0, 100)}`,
         category: "cognitive-analysis",
-        confidence: sve.confidence,
-        evidence: `Analysis confidence: ${Math.round(sve.confidence * 100)}%`,
+        confidence: 0, // internal default — not exposed
+        evidence: `Analysis completed across ${sop.facts.length + sop.assumptions.length} dimensions`,
         tags: ["cognitive-core", "analysis"],
       });
     } catch {
       // LearningStore might not be available in all contexts
     }
 
-    // Store memory in shared context
+    // Store memory in shared context — natural phrasing, no confidence exposure
     try {
       SharedContextStore.saveMemory({
         agent: "cognitive-core",
         type: "insight",
         title: `Cognitive analysis: ${mentalModel.goal.substring(0, 80)}`,
-        summary: `SPYRAL analyzed: "${mentalModel.goal.substring(0, 120)}". Found ${patternsFound.length} patterns, confidence ${Math.round(sve.confidence * 100)}%.`,
-        data: { patterns: lde.patterns, confidence: sve.confidence },
+        summary: mentalModel.goal.substring(0, 120),
+        data: { patterns: lde.patterns },
         sharedWith: ["research", "content", "navigation", "consultant", "command"],
       });
     } catch {
@@ -1317,45 +1274,120 @@ class SpyralCognitiveCoreImpl {
     };
   }
 
-  // ─── SELF-REVIEW (INTERNAL QUALITY GATE) ────────────────────────────
+  // ─── SELF-REVIEW: RESPONSE QUALITY FILTER (RC5.1) ────────────────────
 
   /**
-   * selfReview() — Before every response, silently review.
-   * Checks: Did I answer too quickly? Did I challenge assumptions?
-   * Did I produce value? Am I being curious enough?
+   * selfReview() — Response Quality Filter (RC5.1 PART 8).
+   *
+   * Before every response, silently verify:
+   *   - Am I repeating the user?
+   *   - Am I exposing internal reasoning?
+   *   - Am I writing a report?
+   *   - Am I using a template?
+   *   - Am I asking unnecessary questions?
+   *   - Did I move the user's thinking forward?
+   *   - Did I make at least one meaningful connection?
+   *   - Would an intelligent human actually say this?
+   *
+   * If any answer is "no," flag the issue so the response is revised.
    * Returns internal notes only, never shown to users.
    */
-  private selfCritique(response: string, intent: CognitiveIntent): string {
+  private selfCritique(response: string, intent: CognitiveIntent, input: ThinkInput): string {
     const critiques: string[] = [];
     const responseLower = response.toLowerCase();
+    const inputLower = input.input.toLowerCase();
 
-    // Check: Did I answer too quickly?
-    if (intent.reasoningStrategy === "discovery" && intent.requiresInvestigation) {
-      if (!responseLower.includes("?")) {
-        critiques.push("response lacks a question — needs more inquiry");
+    // Check: Am I repeating the user?
+    const inputWords = inputLower.split(/\s+/).filter((w) => w.length > 3);
+    const repeatedWords = inputWords.filter((w) => responseLower.includes(w));
+    if (repeatedWords.length > inputWords.length * 0.5 && inputWords.length > 3) {
+      critiques.push("repeats too much of the user's input");
+    }
+
+    // Check: Am I quoting the user unnecessarily?
+    const quotedText = response.match(/"([^"]+)"/g);
+    if (quotedText && quotedText.length > 1) {
+      critiques.push("unnecessarily quotes the user's words");
+    }
+
+    // Check: Am I exposing internal reasoning?
+    const internalTerms = [
+      "my reasoning", "hypothesis", "ste strategy", "sve analysis", "sae action",
+      "cognitive pipeline", "let me think", "step 1", "step 2", "step 3",
+      "observation", "analysis complete", "processing", "internal",
+    ];
+    const hasInternalTerms = internalTerms.some((term) => responseLower.includes(term));
+    if (hasInternalTerms) {
+      critiques.push("exposes internal reasoning");
+    }
+
+    // Check: Am I writing a report when not requested?
+    const reportIndicators = [
+      "here is the report", "here is your report", "executive summary",
+      "this report", "the following report", "report generated",
+    ];
+    const isExplicitReport = inputLower.includes("generate a report") ||
+      inputLower.includes("create a report") ||
+      inputLower.includes("write a report") ||
+      inputLower.includes("summarize everything") ||
+      inputLower.includes("export findings");
+    if (!isExplicitReport) {
+      const hasReportLanguage = reportIndicators.some((term) => responseLower.includes(term));
+      if (hasReportLanguage) {
+        critiques.push("generates report without explicit request");
       }
     }
 
-    // Check: Did I challenge assumptions?
-    if (intent.reasoningStrategy === "decision" || intent.reasoningStrategy === "discovery") {
-      if (!responseLower.includes("assum") && !responseLower.includes("question") && !responseLower.includes("challenge")) {
-        critiques.push("response lacks challenge to assumptions");
-      }
+    // Check: Am I using a template opener?
+    const templateOpeners = [
+      "i understand", "you want to", "you asked", "let's investigate",
+      "the user", "the prompt", "based on your", "regarding your",
+    ];
+    const hasTemplateOpener = templateOpeners.some((opener) => responseLower.startsWith(opener));
+    if (hasTemplateOpener) {
+      critiques.push("uses template opener");
     }
 
-    // Check: Did I produce value or just repeat?
-    if (response.length < 100 && intent.complexity !== "low") {
-      critiques.push("response too brief for topic complexity");
+    // Check: Am I asking unnecessary questions?
+    const questionCount = (response.match(/\?/g) || []).length;
+    if (intent.reasoningStrategy === "decision" && questionCount > 2) {
+      critiques.push("too many questions for a decision context");
+    }
+    if (questionCount > 3) {
+      critiques.push("asks too many questions");
     }
 
-    // Check: Am I being curious enough?
-    if (intent.reasoningStrategy === "discovery" && !responseLower.includes("?")) {
-      critiques.push("no question asked — discovery needs dialogue");
+    // Check: Did I move the user's thinking forward?
+    if (response.length < 50 && intent.complexity !== "low") {
+      critiques.push("response too brief to move thinking forward");
+    }
+    const forwardIndicors = [
+      "what if", "have you considered", "another way", "the real question",
+      "underlying", "connection", "pattern", "assumption", "trade-off",
+      "hidden", "contrary", "perspective", "angle",
+    ];
+    const hasForwardThinking = forwardIndicors.some((term) => responseLower.includes(term));
+    if (!hasForwardThinking && !intent.requiresImmediateAnswer) {
+      critiques.push("doesn't move thinking forward");
     }
 
-    // Check: Am I pretending certainty?
-    if (intent.uncertainty === "high" && (responseLower.includes("definitely") || responseLower.includes("certainly"))) {
-      critiques.push("sounds too certain for high-uncertainty topic");
+    // Check: Did I make at least one meaningful connection?
+    const connectionIndicators = [
+      "reminds me", "similar to", "related to", "connects to",
+      "parallel", "pattern", "structure", "like the",
+    ];
+    const hasConnection = connectionIndicators.some((term) => responseLower.includes(term));
+    if (!hasConnection && intent.domain === "research") {
+      critiques.push("no meaningful connection made");
+    }
+
+    // Check: Would an intelligent human actually say this?
+    const roboticPatterns = [
+      "based on the", "according to my", "as an ai", "i am an",
+      "as a language model", "i was designed", "my training",
+    ];
+    if (roboticPatterns.some((p) => responseLower.includes(p))) {
+      critiques.push("sounds robotic or AI-like");
     }
 
     // Apply revision: prepend the most important critique
@@ -1377,10 +1409,20 @@ class SpyralCognitiveCoreImpl {
     recommendation: string,
     _executionPlan: string,
     intent: CognitiveIntent,
+    retrievedMemories: { agent: string; summary: string }[],
   ): string {
     // Delegate to the appropriate agent composer.
     // Each composer is a pure function that receives the input + full
     // cognitive response and returns a unique conversational experience.
+    // Build composer context with conversation state
+    const composerContext = {
+      currentInvestigation: SpyralCognitiveCoreImpl._conversation.currentInvestigation,
+      currentProject: SpyralCognitiveCoreImpl._conversation.currentProject,
+      recentMemories: retrievedMemories.map((m) => m.summary),
+      userName: SpyralCognitiveCoreImpl._genomeContext?.userContext?.userName,
+      turnCount: SpyralCognitiveCoreImpl._conversation.turnCount,
+    };
+
     const composerInput = {
       input,
       response: {
@@ -1390,7 +1432,7 @@ class SpyralCognitiveCoreImpl {
         intent,
         reasoningStrategy: intent.reasoningStrategy,
         understanding,
-        retrievedMemories: [],
+        retrievedMemories,
         mentalModel: {} as MentalModel,
         sop: {} as SOPResult,
         lde: {} as LDEResult,
@@ -1408,17 +1450,17 @@ class SpyralCognitiveCoreImpl {
 
     switch (input.agentType) {
       case "research":
-        return ResearchResponseComposer(composerInput);
+        return ResearchResponseComposer(composerInput, composerContext);
       case "content":
-        return ContentResponseComposer(composerInput);
+        return ContentResponseComposer(composerInput, composerContext);
       case "consultant":
-        return ConsultantResponseComposer(composerInput);
+        return ConsultantResponseComposer(composerInput, composerContext);
       case "navigation":
-        return NavigationResponseComposer(composerInput);
+        return NavigationResponseComposer(composerInput, composerContext);
       case "command":
-        return CommandCenterComposer(composerInput);
+        return CommandCenterComposer(composerInput, composerContext);
       default:
-        return NavigationResponseComposer(composerInput);
+        return NavigationResponseComposer(composerInput, composerContext);
     }
   }
 

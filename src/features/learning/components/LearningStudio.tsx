@@ -164,13 +164,11 @@ export function LearningStudio({ workspaceId }: LearningStudioProps) {
             <p className="text-2xl font-semibold text-white mt-1">{dashboardData.totalRecommendations}</p>
           </div>
           <div className="bg-zinc-900 rounded-lg border border-zinc-800 p-4">
-            <p className="text-xs text-zinc-500">Avg Confidence</p>
-            <p className="text-2xl font-semibold text-white mt-1">
-              {Math.round(dashboardData.averageConfidence * 100)}%
-            </p>
+            <p className="text-xs text-zinc-500">Pattern Categories</p>
+            <p className="text-2xl font-semibold text-white mt-1">{dashboardData.totalPatterns > 0 ? 'Active' : 'None'}</p>
           </div>
           <div className="bg-zinc-900 rounded-lg border border-zinc-800 p-4">
-            <p className="text-xs text-zinc-500">High Confidence</p>
+            <p className="text-xs text-zinc-500">Recent Activity</p>
             <p className="text-2xl font-semibold text-emerald-400 mt-1">{dashboardData.highConfidencePatterns}</p>
           </div>
           <div className="bg-zinc-900 rounded-lg border border-zinc-800 p-4">

@@ -1,16 +1,14 @@
 /**
- * PatternsView — Displays discovered patterns with confidence visualization.
+ * PatternsView — Displays discovered patterns.
  *
- * Per ADR-0036 (Learning Is Bayesian), every repeated Outcome should
- * increase or decrease confidence in a Pattern.
  * Per ADR-0037, Patterns are discovered, not authored.
+ * Patterns display basic info only — internal confidence is not exposed.
  */
 
 "use client";
 
 import { useState } from "react";
-import { Brain, TrendingUp, TrendingDown, Trash2, ChevronDown, ChevronRight } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Brain, ChevronDown, ChevronRight, Trash2 } from "lucide-react";
 import { LearningStore } from "../learning.store";
 import type { Pattern } from "@/kernel/contracts/Pattern";
 
@@ -18,20 +16,6 @@ import type { Pattern } from "@/kernel/contracts/Pattern";
 
 interface PatternsViewProps {
   patterns: Pattern[];
-}
-
-// ─── Confidence color helper ────────────────────────────────────────────
-
-function confidenceColor(value: number): string {
-  if (value >= 0.7) return "bg-emerald-500";
-  if (value >= 0.4) return "bg-amber-500";
-  return "bg-red-500";
-}
-
-function confidenceTextColor(value: number): string {
-  if (value >= 0.7) return "text-emerald-400";
-  if (value >= 0.4) return "text-amber-400";
-  return "text-red-400";
 }
 
 // ─── Component ──────────────────────────────────────────────────────────
@@ -49,10 +33,6 @@ export function PatternsView({ patterns }: PatternsViewProps) {
     LearningStore.deletePattern(id);
   };
 
-  const handleUpdateConfidence = (id: string, outcomeMatch: boolean) => {
-    LearningStore.updatePatternConfidence(id, outcomeMatch);
-  };
-
   if (localPatterns.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-zinc-600">
@@ -67,7 +47,6 @@ export function PatternsView({ patterns }: PatternsViewProps) {
     <div className="space-y-3">
       {localPatterns.map((pattern) => {
         const isExpanded = expandedId === pattern.id;
-        const pct = Math.round(pattern.confidence * 100);
 
         return (
           <div
@@ -95,19 +74,6 @@ export function PatternsView({ patterns }: PatternsViewProps) {
               </div>
 
               <div className="flex items-center gap-3 shrink-0">
-                {/* Confidence bar */}
-                <div className="flex items-center gap-2">
-                  <div className="w-20 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
-                    <div
-                      className={cn("h-full rounded-full transition-all", confidenceColor(pattern.confidence))}
-                      style={{ width: `${pct}%` }}
-                    />
-                  </div>
-                  <span className={cn("text-xs font-medium w-8 text-right", confidenceTextColor(pattern.confidence))}>
-                    {pct}%
-                  </span>
-                </div>
-
                 {/* Occurrence count */}
                 <span className="text-xs text-zinc-500">{pattern.occurrenceCount}x</span>
 
@@ -131,35 +97,15 @@ export function PatternsView({ patterns }: PatternsViewProps) {
               </div>
             </div>
 
-            {/* Expanded: confidence controls + evidence */}
+            {/* Expanded: details */}
             {isExpanded && (
               <div className="px-3 pb-3 border-t border-zinc-800 pt-3 space-y-3">
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleUpdateConfidence(pattern.id, true);
-                    }}
-                    className="flex items-center gap-1 px-2 py-1 bg-zinc-800 hover:bg-emerald-900/50 rounded text-xs text-zinc-400 hover:text-emerald-400 transition-colors"
-                  >
-                    <TrendingUp className="w-3 h-3" />
-                    Confirm Pattern
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleUpdateConfidence(pattern.id, false);
-                    }}
-                    className="flex items-center gap-1 px-2 py-1 bg-zinc-800 hover:bg-red-900/50 rounded text-xs text-zinc-400 hover:text-red-400 transition-colors"
-                  >
-                    <TrendingDown className="w-3 h-3" />
-                    Contradict Pattern
-                  </button>
-                </div>
-
+                {pattern.description && (
+                  <p className="text-xs text-zinc-400">{pattern.description}</p>
+                )}
                 <div className="text-xs text-zinc-600 space-y-1">
-                  <p>Evidence Sources: {pattern.evidenceIds.length}</p>
-                  <p>Last Observed: {new Date(pattern.lastObserved).toLocaleString()}</p>
+                  <p>Observed {pattern.occurrenceCount} times</p>
+                  <p>Last observed: {new Date(pattern.lastObserved).toLocaleString()}</p>
                 </div>
               </div>
             )}
