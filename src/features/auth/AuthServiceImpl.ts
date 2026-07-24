@@ -66,9 +66,13 @@ class ApiAuthServiceImpl implements AuthService {
   // ─── Auth Operations ──────────────────────────────────────────────────
 
   async signup(email: string, password: string, name: string): Promise<SignupResult> {
+    // Send last cached token to enable server-side duplicate detection
+    // when the user store is unavailable (e.g., Vercel /tmp/ was cleared).
+    const lastToken = this.getCachedToken();
+
     const result = await api<SignupResult>("/api/auth/signup", {
       method: "POST",
-      body: JSON.stringify({ email, password, name }),
+      body: JSON.stringify({ email, password, name, lastToken }),
     });
 
     if (result.success && result.token) {

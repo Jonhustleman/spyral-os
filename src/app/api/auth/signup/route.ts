@@ -3,14 +3,21 @@
  *
  * Transactional: either everything succeeds or everything rolls back.
  * Never leaves half-created accounts.
+ *
+ * Token-assisted duplicate detection:
+ *   The client may include a lastToken from a previous session. If the
+ *   store is unavailable (Vercel /tmp/ cleared) but the lastToken is
+ *   valid and matches the email, we treat it as a duplicate account
+ *   and reject the signup. This prevents creating multiple accounts
+ *   with the same email when the store is empty.
  */
 import { NextResponse } from "next/server";
 import { findByEmail, saveUser, deleteUser, hashPassword, generateId } from "../_store";
-import { createToken } from "../_token";
+import { createToken, verifyToken } from "../_token";
 
 export async function POST(request: Request) {
   try {
-    const { email, password, name } = await request.json();
+    const { email, password, name, lastToken } = await request.json();
 
     // ── Validate ───────────────────────────────────────────────────────
     if (!email || !password || !name?.trim()) {
@@ -37,13 +44,25 @@ export async function POST(request: Request) {
       );
     }
 
-    // Check for existing user
+    // Check for existing user in store
     const existing = await findByEmail(normalizedEmail);
     if (existing) {
       return NextResponse.json(
         { success: false, error: "An account with this email already exists." },
         { status: 409 },
       );
+    }
+
+    // Token-assisted duplicate detection: if the store is empty but the
+    // client has a valid token for this email, treat it as duplicate.
+    if (lastToken) {
+      const payload = verifyToken(lastToken);
+      if (payload && payload.email === normalizedEmail) {
+        return NextResponse.json(
+          { success: false, error: "An account with this email already exists." },
+          { status: 409 },
+        );
+      }
     }
 
     // ── Create user (pre-generate everything before saving) ────────────
