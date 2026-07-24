@@ -29,6 +29,8 @@ export interface ComposerContext {
   userName?: string;
   /** Number of turns in the current conversation */
   turnCount?: number;
+  /** RC6: The structured ReasoningPackage built by the WorkingMind system */
+  reasoningPackage?: import("@/core/mind").ReasoningPackage;
 }
 
 /**

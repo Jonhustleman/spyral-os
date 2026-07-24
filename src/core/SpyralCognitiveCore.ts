@@ -26,6 +26,7 @@ import {
   NavigationResponseComposer,
   CommandCenterComposer,
 } from "@/features/composers";
+import { buildWorkingMind, buildReasoningPackage, serializeReasoningPackage } from "@/core/mind";
 
 // ─── Constants ──────────────────────────────────────────────────────────
 
@@ -305,6 +306,14 @@ class SpyralCognitiveCoreImpl {
     return SpyralCognitiveCoreImpl.getConversation();
   }
 
+  /** Store the latest ReasoningPackage for composers */
+  private static _lastReasoningPackage: import("@/core/mind").ReasoningPackage | null = null;
+
+  /** Get the latest ReasoningPackage */
+  static getLastReasoningPackage() {
+    return SpyralCognitiveCoreImpl._lastReasoningPackage;
+  }
+
   // ─── PUBLIC ENTRY POINT ───────────────────────────────────────────────
 
   /**
@@ -338,6 +347,26 @@ class SpyralCognitiveCoreImpl {
         genomeVersion: GenomeBootloader.getVersion(),
       },
     });
+
+    // ─── RC6: BUILD WORKING MIND ────────────────────────────────────────
+    // Build structured state before any reasoning.
+    // This runs alongside the existing pipeline — WorkingMind organizes
+    // reality while the pipeline reasons over it.
+    (async () => {
+      try {
+        const mind = await buildWorkingMind(input.input, input.agentType, {
+          sharedContextStore: SharedContextStore as any,
+          learningStore: LearningStore as any,
+          currentInvestigation: SpyralCognitiveCoreImpl._conversation.currentInvestigation,
+          currentMission: SpyralCognitiveCoreImpl._conversation.currentProject,
+        });
+        const pkg = buildReasoningPackage(mind);
+        SpyralCognitiveCoreImpl._lastReasoningPackage = pkg;
+      } catch (err) {
+        // WorkingMind is non-critical — pipeline continues without it
+        console.warn("[RC6] WorkingMind build failed, continuing without:", err);
+      }
+    })();
 
     // ─── STAGE 0: INTENT ANALYSIS (PHASE F.1) ──────────────────────────
     // Every request passes through IntentAnalysisStage FIRST.
@@ -1452,12 +1481,13 @@ class SpyralCognitiveCoreImpl {
     // Each composer is a pure function that receives the input + full
     // cognitive response and returns a unique conversational experience.
     // Build composer context with conversation state
-    const composerContext = {
+    const composerContext: import("@/features/composers").ComposerContext = {
       currentInvestigation: SpyralCognitiveCoreImpl._conversation.currentInvestigation,
       currentProject: SpyralCognitiveCoreImpl._conversation.currentProject,
       recentMemories: retrievedMemories.map((m) => m.summary),
       userName: SpyralCognitiveCoreImpl._genomeContext?.userContext?.userName,
       turnCount: SpyralCognitiveCoreImpl._conversation.turnCount,
+      reasoningPackage: SpyralCognitiveCoreImpl._lastReasoningPackage ?? undefined,
     };
 
     const composerInput = {
