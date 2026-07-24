@@ -48,7 +48,7 @@ export default function ContentAgentPage() {
     setMessages((prev) => [...prev, userMsg]);
     setIsThinking(true);
 
-    const cognitive = SpyralCognitiveCore.think({
+    const cognitive = await SpyralCognitiveCore.think({
       input: prompt,
       agentType: "content",
     });

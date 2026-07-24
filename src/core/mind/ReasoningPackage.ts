@@ -1,39 +1,99 @@
 /**
- * ReasoningPackage — Model-agnostic structured thought format.
+ * ReasoningPackage — Universal model-agnostic input to any LLM.
  *
- * RC6: This is the output of the WorkingMind system and the input to any LLM.
- * It converts the WorkingMind state + genome identity into a neutral
- * structured package that ANY model can consume (OpenAI, Claude, local, etc.).
+ * RC7: This is the ONLY thing any LLM ever receives from SPYRAL.
+ * It is the complete context for a reasoning request.
  *
- * The ReasoningPackage is the bridge between the mind and the language layer.
- * It is NOT a prompt template. It is structured data that can be
- * serialized to text in a model-agnostic way.
+ * The ReasoningPackage contains everything the model needs:
+ *   - Identity (who the model should be)
+ *   - Goal + Mission (what we're trying to achieve)
+ *   - WorkingMind (the structured state of the current problem)
+ *   - Memory (what SPYRAL remembers from past interactions)
+ *   - Knowledge Graph (entities, relationships, patterns)
+ *   - Conversation History (recent conversation turns)
+ *   - Instructions (how the model should reason)
  *
  * Design principle: Never let the mind depend on a specific model provider.
+ * This package is serialized to text for any model to consume.
  */
 
 import type { WorkingMind } from "./WorkingMind";
 
-export interface ReasoningPackage {
-  /** The WorkingMind state that produced this package */
-  mind: WorkingMind;
+// ═══════════════════════════════════════════════════════════════════════════
+// REASONING PACKAGE — The universal interface
+// ═══════════════════════════════════════════════════════════════════════════
 
-  /** Agent identity/genome for the LLM to adopt */
+export interface ReasoningPackage {
+  // ─── IDENTITY ──────────────────────────────────────────────────────
+
+  /** Agent identity for the LLM to adopt */
   identity: {
     name: string;
     role: string;
     traits: string[];
   };
 
-  /** Instructions for the LLM — written to guide, not prescribe */
+  // ─── GOAL & MISSION ────────────────────────────────────────────────
+
+  /** Current goal derived from user input */
+  currentGoal: string;
+
+  /** Current mission (persists across conversation, from ConversationMind) */
+  currentMission?: string;
+
+  /** Current investigation (more exploratory than a mission) */
+  currentInvestigation?: string;
+
+  // ─── WORKING MIND ──────────────────────────────────────────────────
+
+  /** The complete WorkingMind state for this turn */
+  mind: WorkingMind;
+
+  // ─── MEMORY ────────────────────────────────────────────────────────
+
+  /** Identity memory (who SPYRAL is) */
+  identityMemory: string[];
+
+  /** Patterns observed across conversations */
+  patterns: string[];
+
+  /** User preferences */
+  userPreferences: string[];
+
+  /** Previous discoveries */
+  previousDiscoveries: string[];
+
+  // ─── KNOWLEDGE GRAPH ───────────────────────────────────────────────
+
+  /** Relevant knowledge graph entities */
+  knowledgeGraph: {
+    entities: string[];
+    relationships: { source: string; target: string; type: string }[];
+  };
+
+  // ─── CONVERSATION HISTORY ─────────────────────────────────────────
+
+  /** Recent conversation turns (up to last 10) */
+  conversationHistory: { role: "user" | "assistant"; content: string }[];
+
+  // ─── INSTRUCTIONS ──────────────────────────────────────────────────
+
+  /** Instructions for the LLM */
   instructions: {
     primary: string;
     constraints: string[];
     approach: string;
   };
 
-  /** Metadata */
+  // ─── METADATA ──────────────────────────────────────────────────────
+
+  /** Agent type that initiated this reasoning */
+  agentType: string;
+
+  /** Package format version */
   version: string;
+
+  /** When this package was created */
   createdAt: number;
 }
 
@@ -73,103 +133,129 @@ const DEFAULT_IDENTITY = {
   traits: ["thoughtful", "precise", "helpful"],
 };
 
+// ─── Builder ─────────────────────────────────────────────────────────────
+
 /**
- * Build a ReasoningPackage from a WorkingMind.
- * This is the final step before serialization to natural language.
- * Any LLM can consume this package.
+ * Build a complete ReasoningPackage from WorkingMind + additional context.
+ * This is the final step before sending to any LLM.
  */
 export function buildReasoningPackage(
   mind: WorkingMind,
   options?: {
     customIdentity?: { name: string; role: string; traits: string[] };
-    customInstructions?: string;
+    conversationHistory?: { role: "user" | "assistant"; content: string }[];
+    knowledgeGraph?: { entities: string[]; relationships: { source: string; target: string; type: string }[] };
+    patterns?: string[];
+    predictions?: string[];
+    userPreferences?: string[];
   },
 ): ReasoningPackage {
   const identity = options?.customIdentity ?? AGENT_IDENTITIES[mind.agentType] ?? DEFAULT_IDENTITY;
 
-  // Build structured instructions based on WorkingMind state
+  // Build instructions based on WorkingMind state
   const instructions = buildInstructions(mind, identity);
 
+  // Collect memory from WorkingMind
+  const identityMemory = [...mind.activeMemory.identity];
+  const patterns = options?.patterns ?? [...mind.activeMemory.patterns];
+  const userPreferences = options?.userPreferences ?? [...mind.activeMemory.preferences];
+  const previousDiscoveries = options?.patterns ?? [...mind.activeMemory.previousDiscoveries];
+
   return {
-    mind,
     identity,
+    currentGoal: mind.goal,
+    currentMission: mind.currentMission,
+    currentInvestigation: mind.currentInvestigation,
+    mind,
+    identityMemory,
+    patterns,
+    userPreferences,
+    previousDiscoveries,
+    knowledgeGraph: options?.knowledgeGraph ?? { entities: [], relationships: [] },
+    conversationHistory: options?.conversationHistory ?? [],
     instructions,
-    version: "1.0.0",
+    agentType: mind.agentType,
+    version: "2.0.0",
     createdAt: Date.now(),
   };
 }
 
+// ─── Serialization ───────────────────────────────────────────────────────
+
 /**
- * Serialize a ReasoningPackage to natural language text.
- * This is NOT a prompt template — it's a structural serialization
- * that any model can consume.
+ * Serialize a ReasoningPackage to structured text for any LLM to consume.
+ * This is NOT a prompt template — it's a structural serialization.
+ * Every adapter receives this but can use its own serialization.
  */
 export function serializeReasoningPackage(pkg: ReasoningPackage): string {
-  const { mind, identity, instructions } = pkg;
-
   const sections: string[] = [];
 
   // Identity
-  sections.push(`# ${identity.name}`);
-  sections.push(`Role: ${identity.role}`);
-  sections.push(`Traits: ${identity.traits.join(", ")}`);
+  sections.push(`# ${pkg.identity.name}`);
+  sections.push(`Role: ${pkg.identity.role}`);
+  sections.push(`Traits: ${pkg.identity.traits.join(", ")}`);
   sections.push("");
+
+  // Mission / Investigation
+  if (pkg.currentMission) {
+    sections.push(`## Current Mission`);
+    sections.push(pkg.currentMission);
+    sections.push("");
+  }
+  if (pkg.currentInvestigation) {
+    sections.push(`## Current Investigation`);
+    sections.push(pkg.currentInvestigation);
+    sections.push("");
+  }
 
   // Goal + Context
   sections.push(`## Goal`);
-  sections.push(mind.goal);
+  sections.push(pkg.currentGoal);
   sections.push("");
   sections.push(`## Context`);
-  sections.push(mind.context);
+  sections.push(pkg.mind.context);
   sections.push("");
 
   // Entities
-  if (mind.entities.length > 0) {
+  if (pkg.mind.entities.length > 0) {
     sections.push(`## Key Concepts`);
-    for (const e of mind.entities) {
+    for (const e of pkg.mind.entities) {
       sections.push(`- ${e.name} (${e.type})${e.source === 'user' ? '' : ' [from memory]'}`);
     }
     sections.push("");
   }
 
   // Relationships
-  if (mind.relationships.length > 0) {
+  if (pkg.mind.relationships.length > 0) {
     sections.push(`## Relationships`);
-    for (const r of mind.relationships) {
-      const source = mind.entities.find(e => e.id === r.sourceId)?.name ?? r.sourceId;
-      const target = mind.entities.find(e => e.id === r.targetId)?.name ?? r.targetId;
+    for (const r of pkg.mind.relationships) {
+      const source = pkg.mind.entities.find(e => e.id === r.sourceId)?.name ?? r.sourceId;
+      const target = pkg.mind.entities.find(e => e.id === r.targetId)?.name ?? r.targetId;
       sections.push(`- ${source} ${r.type} ${target} (${r.strength})`);
     }
     sections.push("");
   }
 
   // Constraints
-  if (mind.constraints.length > 0) {
+  if (pkg.mind.constraints.length > 0) {
     sections.push(`## Constraints`);
-    for (const c of mind.constraints) sections.push(`- ${c}`);
+    for (const c of pkg.mind.constraints) sections.push(`- ${c}`);
     sections.push("");
   }
 
   // Unknowns
-  if (mind.unknowns.length > 0) {
+  if (pkg.mind.unknowns.length > 0) {
     sections.push(`## Unknowns / Gaps`);
-    for (const u of mind.unknowns) sections.push(`- ${u}`);
-    sections.push("");
-  }
-
-  // Possible Directions
-  if (mind.possibleDirections.length > 0) {
-    sections.push(`## Possible Directions`);
-    for (const d of mind.possibleDirections) sections.push(`- ${d}`);
+    for (const u of pkg.mind.unknowns) sections.push(`- ${u}`);
     sections.push("");
   }
 
   // Memory
   const memoryEntries = [
-    ...mind.activeMemory.identity,
-    ...mind.activeMemory.patterns,
-    ...mind.activeMemory.preferences,
-    ...mind.activeMemory.previousDiscoveries,
+    ...pkg.identityMemory,
+    ...pkg.patterns,
+    ...pkg.userPreferences,
+    ...pkg.previousDiscoveries,
   ];
   if (memoryEntries.length > 0) {
     sections.push(`## Relevant Memory`);
@@ -177,37 +263,58 @@ export function serializeReasoningPackage(pkg: ReasoningPackage): string {
     sections.push("");
   }
 
-  // Hypotheses (empty slots for LLM to fill)
-  if (mind.hypotheses.length > 0) {
+  // Knowledge Graph
+  if (pkg.knowledgeGraph.entities.length > 0 || pkg.knowledgeGraph.relationships.length > 0) {
+    sections.push(`## Knowledge Graph`);
+    if (pkg.knowledgeGraph.entities.length > 0) {
+      sections.push(`Entities: ${pkg.knowledgeGraph.entities.join(", ")}`);
+    }
+    for (const r of pkg.knowledgeGraph.relationships) {
+      sections.push(`- ${r.source} ${r.type} ${r.target}`);
+    }
+    sections.push("");
+  }
+
+  // Hypotheses
+  if (pkg.mind.hypotheses.length > 0) {
     sections.push(`## Possible Hypotheses`);
-    for (const h of mind.hypotheses) {
+    for (const h of pkg.mind.hypotheses) {
       sections.push(`### ${h.title}`);
       sections.push(h.description);
     }
     sections.push("");
   }
 
-  // Simulations (empty slots for LLM to fill)
-  if (mind.simulations.length > 0) {
+  // Simulations
+  if (pkg.mind.simulations.length > 0) {
     sections.push(`## What-If Scenarios`);
-    for (const s of mind.simulations) {
+    for (const s of pkg.mind.simulations) {
       sections.push(`### ${s.title}`);
       sections.push(s.description);
     }
     sections.push("");
   }
 
+  // Conversation History
+  if (pkg.conversationHistory.length > 0) {
+    sections.push(`## Recent Conversation`);
+    for (const turn of pkg.conversationHistory.slice(-6)) {
+      sections.push(`**${turn.role === "user" ? "User" : "You"}**: ${turn.content}`);
+    }
+    sections.push("");
+  }
+
   // Instructions
   sections.push(`## Instructions`);
-  sections.push(instructions.primary);
-  if (instructions.constraints.length > 0) {
+  sections.push(pkg.instructions.primary);
+  if (pkg.instructions.constraints.length > 0) {
     sections.push("");
     sections.push(`### Constraints`);
-    for (const c of instructions.constraints) sections.push(`- ${c}`);
+    for (const c of pkg.instructions.constraints) sections.push(`- ${c}`);
   }
   sections.push("");
   sections.push(`### Approach`);
-  sections.push(instructions.approach);
+  sections.push(pkg.instructions.approach);
 
   return sections.join("\n");
 }
@@ -218,7 +325,6 @@ function buildInstructions(
   mind: WorkingMind,
   identity: { name: string; role: string; traits: string[] },
 ): ReasoningPackage['instructions'] {
-  // Determine approach based on WorkingMind state
   let approach = "Think carefully about the user's input and context.";
 
   if (mind.hypotheses.length > 0) {

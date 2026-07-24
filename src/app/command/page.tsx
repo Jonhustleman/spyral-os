@@ -52,11 +52,11 @@ export default function CommandCenterPage() {
   const handleCommand = () => {
     if (!command.trim()) return;
 
-    // Understand intent via Cognitive Core
+    // Understand intent via Cognitive Core (fire-and-forget)
     SpyralCognitiveCore.think({
       input: command,
       agentType: "command",
-    });
+    }).catch(() => {});
 
     const cmd = command.toLowerCase();
     if (cmd.includes("research") || cmd.includes("investigate") || cmd.includes("analyze")) {

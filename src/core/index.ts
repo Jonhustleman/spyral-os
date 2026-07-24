@@ -8,23 +8,11 @@
  * They NEVER replace the Cognitive Core.
  */
 
-export { SpyralCognitiveCore, CONFIDENCE_MAX } from "./SpyralCognitiveCore";
+export { SpyralCognitiveCore } from "./SpyralCognitiveCore";
 export type {
   AgentType,
   ResearchMode,
-  ReasoningStrategy,
-  CognitiveDomain,
-  CognitiveComplexity,
-  CognitiveIntent,
   ConversationContext,
-  MentalModel,
-  SOPResult,
-  LDEResult,
-  STEStrategy,
-  STEResult,
-  SVEResult,
-  SAEAction,
-  SAEResult,
   CognitiveResponse,
   ThinkInput,
 } from "./SpyralCognitiveCore";

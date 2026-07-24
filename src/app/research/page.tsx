@@ -48,7 +48,7 @@ export default function ResearchAgentPage() {
     setMessages((prev) => [...prev, userMsg]);
     setIsThinking(true);
 
-    const cognitiveResponse = SpyralCognitiveCore.think({
+    const cognitiveResponse = await SpyralCognitiveCore.think({
       input: prompt,
       agentType: "research",
       researchMode: "discovery",
