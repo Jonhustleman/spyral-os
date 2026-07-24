@@ -40,7 +40,7 @@ export function NavigationStudio({ workspaceId = "default" }: NavigationStudioPr
   const [recentDestinations, setRecentDestinations] = useState<NavigationSession[]>([]);
   const [isNavigating, setIsNavigating] = useState(false);
   const [currentQuestion, setCurrentQuestion] = useState<string | null>(
-    "Where do you want to go today—in reality?"
+    "Every journey starts from somewhere. Tell me about the direction you're considering, and I'll help map what's between here and there."
   );
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
 
@@ -63,9 +63,9 @@ export function NavigationStudio({ workspaceId = "default" }: NavigationStudioPr
     setActiveSessionId(session.id);
     setPrompt("");
 
-    // First clarifying question
+    // Acknowledge direction, then offer next perspective
     const q = NavigationStore.nextQuestion(session);
-    setCurrentQuestion(q || "Great. Let's figure out what has to change to get you there.");
+    setCurrentQuestion(q || "Let's figure out what has to change to get you there.");
   };
 
   const handleAnswerQuestion = (answer: string) => {
@@ -334,7 +334,7 @@ export function NavigationStudio({ workspaceId = "default" }: NavigationStudioPr
         return;
       } else if (nextStage === NavigationStage.COMPLETE) {
         NavigationStore.updateStatus(activeSessionId, "COMPLETED");
-        setCurrentQuestion("Journey complete! 🎉 What would you like to navigate next?");
+        setCurrentQuestion("Journey complete! 🎉 You've mapped out a path. Let me know when you're ready to explore a new direction.");
         setActiveSessionId(null);
         setIsNavigating(false);
         return;
@@ -357,7 +357,7 @@ export function NavigationStudio({ workspaceId = "default" }: NavigationStudioPr
     setActiveSessionId(sessionId);
     setIsNavigating(true);
     setCurrentQuestion(
-      `Welcome back! Yesterday we were working toward: "${session.prompt}". Ready to continue?`
+      `Welcome back. Last session you were working toward: "${session.prompt}". You can pick up where you left off or start something new.`
     );
   };
 
@@ -557,7 +557,7 @@ export function NavigationStudio({ workspaceId = "default" }: NavigationStudioPr
                 }
                 setActiveSessionId(null);
                 setIsNavigating(false);
-                setCurrentQuestion("Where do you want to go today—in reality?");
+                setCurrentQuestion("Every journey starts from somewhere. Tell me about the direction you're considering.");
               }}
               className="text-xs text-zinc-600 hover:text-zinc-400 transition-colors"
             >

@@ -1,109 +1,139 @@
 /**
- * ContentResponseComposer — Creative Director
+ * ContentResponseComposer — Creative Director (RC5)
  *
- * RC5.1 Identity: Creative Director + Brand Strategist + Psychologist + Storyteller.
- * Never behaves like Research.
+ * IDENTITY: Creative Director + Brand Strategist + Psychologist + Storyteller.
+ * Never interviews. Never templates. Never behaves like Research.
+ *
+ * Every response follows: Understand → Think → Contribute → (Optional) One question
+ * The contribution MUST stand on its own if the question were removed.
  *
  * Workflow:
- *   Objective → Emotion → Audience → Narrative →
- *   Hook → Campaign → Assets → Execution
+ *   Feel the emotion → Imagine the audience → Build the narrative →
+ *   Test the angle → Explore the hook → Deliver creative direction
  *
- * Never interrogates users with forms.
- * Discovers information naturally through conversation.
- * Max 2-3 questions. Infers everything else.
- * Reports are ONLY generated when the user explicitly requests one.
+ * Content creation is about making people feel something before they think something.
+ * The response itself should demonstrate great content — not just talk about it.
  */
 
 import type { ResponseComposer, ComposerInput, ComposerContext } from "./ResponseComposer";
-import { getNaturalTechniqueHint } from "@/features/cognitive-techniques";
 
-// ─── Creative Direction — Not interrogation, natural discovery ────────────
+// ─── Internal Creative Thinking ─────────────────────────────────────────────
 
-const creativeOpeners = [
-  "What reaction do you want someone to have after experiencing this?",
-  "If this worked perfectly, what would someone feel? Think? Do?",
-  "What's the one thing you need people to understand that they don't already?",
-  "Who is this really for — and what keeps them up at night?",
-  "What's the story here that only you can tell?",
-  "What emotion is this supposed to create? Let's start there.",
-  "Every great piece of content comes from a tension. What's the tension here?",
-];
+/**
+ * Think creatively about the user's input.
+ * Feels emotion, imagines audience, finds the narrative tension.
+ */
+function think(input: string, turnCount: number): string[] {
+  const thoughts: string[] = [];
+  const lower = input.toLowerCase();
 
-const narrativeResponses = [
-  "That's interesting. If this was a story, what would the turning point be?",
-  "Stories work because of contrast — before and after, problem and solution. Where's the contrast here?",
-  "The best narratives make the audience feel something before they think something. What should they feel first?",
-];
+  // Feel the emotional core
+  if (lower.includes("frustrat") || lower.includes("angry") || lower.includes("tired")) {
+    thoughts.push("There's real energy in frustration. The best creative work comes from tension that needs resolution.");
+  } else if (lower.includes("excited") || lower.includes("love") || lower.includes("amazing")) {
+    thoughts.push("Passion is contagious. The challenge is translating that feeling into something someone else can feel.");
+  } else if (lower.includes("confus") || lower.includes("overwhelm") || lower.includes("lost")) {
+    thoughts.push("Complexity is an opportunity. When something is confusing, clarity becomes the most valuable creative asset.");
+  }
 
-const hookResponses = [
-  "The first moment is everything. What's the one thing someone needs to see or hear to want more?",
-  "If you had three seconds to capture attention, what would you say?",
-  "A great hook makes a promise. What promise are you making?",
-];
+  // Find the narrative tension
+  if (lower.includes("but") || lower.includes("however") || lower.includes("although")) {
+    thoughts.push("The 'but' is always where the story lives. That tension between what is and what could be — that's the hook.");
+  }
 
-const campaignResponses = [
-  "Let's think about this across touchpoints. Where does this come to life first?",
-  "A campaign isn't one piece of content — it's an ecosystem. What's the centerpiece?",
-  "How does this evolve over time? Day one, week one, month one?",
-];
+  // Audience instinct
+  if (turnCount === 0) {
+    thoughts.push("Every great piece of content makes someone feel understood before it asks them to understand something new.");
+  }
 
-const fallbacks = [
-  "Before we figure out the format, let's figure out the feeling. What should someone walk away feeling after they've seen this?",
-  "The best content starts with a truth that needs to be shared. What truth are you sitting on?",
-  "Let's skip the strategy deck for a second. What would you make if there were no constraints at all?",
-  "Creative work is about making choices. What's the boldest choice here?",
-];
-
-// ─── Helper ─────────────────────────────────────────────────────────────────
-
-function pick<T>(arr: T[], seed: string): T {
-  return arr[seed.length % arr.length];
+  return thoughts;
 }
 
 /**
- * Content Response Composer.
- * RC5.1: Creative Director persona — sharp, intuitive, no-nonsense.
- * Never asks more than 2-3 questions. Infers everything else.
- * Only generates structured output when the user explicitly requests it.
+ * Contribute creative direction — this is the value.
+ * Demonstrates great content instincts, not just questions.
+ */
+function contribute(input: string, thoughts: string[], turnCount: number): string {
+  const lower = input.toLowerCase();
+
+  // Handle resistance
+  if (lower.includes("i don't know") || lower.includes("not sure") || lower.includes("nothing")) {
+    return "Sometimes the best creative work comes from constraints. If you had to make something — anything — today, what's the one truth you know for sure? That's where you start.";
+  }
+
+  // Handle frustration
+  if (lower.includes("this isn't helpful") || lower.includes("not what i") || lower.includes("wrong")) {
+    return "Let me step back. Creative blocks usually come from trying to be original instead of trying to be true. What's one thing you actually believe that no one else is saying? Start there.";
+  }
+
+  // Core creative contribution
+  if (turnCount === 0) {
+    return "The most memorable content doesn't inform — it transforms. It makes someone see something familiar in a new light. That moment of recognition — 'yes, that's exactly how it feels' — that's what we're building toward. The format comes later. The feeling comes first.";
+  } else if (turnCount <= 2) {
+    return "Here's what I'm sensing: the narrative isn't about what you're saying — it's about what the audience discovers about themselves through what you're saying. The best stories don't tell people what to think. They hold up a mirror and let people recognize their own reflection. What's the mirror here?";
+  } else {
+    return "Let me test an angle: what if the story isn't about the product, solution, or idea at all? What if it's about the transformation the audience experiences by engaging with it? People don't buy what you make — they buy what your thing makes them feel about themselves.";
+  }
+}
+
+/**
+ * Optionally ask one creative question — only if it unlocks direction.
+ */
+function maybeAskQuestion(input: string, turnCount: number): string | null {
+  const lower = input.toLowerCase();
+
+  // Never ask on first turn
+  if (turnCount <= 0) return null;
+
+  // Don't ask if user is stuck or frustrated
+  if (lower.length < 15 || lower.includes("not what")) return null;
+
+  const questions = [
+    "What emotion does this need to create in the first three seconds?",
+    "Who's the one person this needs to resonate with most?",
+    "What's the contrast — before and after — that makes this story worth telling?",
+    "If this was the only thing someone ever saw from you, what would you want them to feel?",
+  ];
+
+  const idx = (input.length + turnCount) % questions.length;
+  return questions[idx];
+}
+
+// ─── Main Composer ──────────────────────────────────────────────────────────
+
+/**
+ * Content Response Composer (RC5).
+ * Creative Director — feels emotion, imagines audiences, builds narratives.
+ * Never interviews. Never more than one optional question.
  */
 export const ContentResponseComposer: ResponseComposer = (
   input: ComposerInput,
   context?: ComposerContext,
 ): string => {
-  const strategy = input.response.intent.reasoningStrategy;
-  const seed = input.input.input;
   const turnCount = context?.turnCount || 0;
-  const text = input.input.input.toLowerCase();
+  const text = input.input.input;
 
-  // Check if user explicitly requested a report or structured output
-  const isExplicitReportRequest = /generate|create.*report|write.*brief|creative brief|campaign plan|content plan/i.test(text);
+  // Step 1: Think creatively
+  const thoughts = think(text, turnCount);
 
-  // Build response based on the stage of the creative workflow
-  let response: string;
+  // Step 2: Contribute creative direction
+  const contribution = contribute(text, thoughts, turnCount);
 
-  if (isExplicitReportRequest) {
-    response = "Let's put together what we know. What's the core message that everything else supports?";
-  } else if (turnCount === 0) {
-    // First turn — understand the objective and emotion
-    response = pick(creativeOpeners, seed);
-  } else if (turnCount === 1) {
-    // Second turn — narrative and hook
-    response = pick(narrativeResponses, seed);
-  } else if (turnCount === 2) {
-    // Third turn — campaign and execution
-    response = pick(campaignResponses, seed);
-  } else {
-    // Deeper into the process
-    response = pick(hookResponses, seed + String(turnCount));
+  // Step 3: Optional question
+  const question = maybeAskQuestion(text, turnCount);
+
+  // Build response
+  const parts: string[] = [];
+
+  if (thoughts.length > 0) {
+    parts.push(thoughts[thoughts.length - 1]);
   }
 
-  // Optionally weave in a cognitive technique hint
-  if (turnCount > 1 && Math.random() < 0.2) {
-    const hint = getNaturalTechniqueHint(seed, "content", turnCount);
-    if (hint && !response.includes(hint)) {
-      response = `${response}\n\n${hint}`;
-    }
+  parts.push(contribution);
+
+  if (question) {
+    parts.push(question);
   }
 
-  return response;
+  return parts.join("\n\n");
 };

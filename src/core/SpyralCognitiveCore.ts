@@ -410,16 +410,13 @@ class SpyralCognitiveCoreImpl {
     // ─── BUILD RESPONSE ────────────────────────────────────────────────
     let response = this.respond(input, understanding, ste, sve, sae, recommendation, executionPlan, intent, retrievedMemories);
 
-    // ─── SELF-CRITIQUE (PHASE F.1) ─────────────────────────────────────
-    // Before returning, review and revise INTERNALLY.
+    // ─── SELF-CRITIQUE (RC5) ──────────────────────────────────────────
+    // Before returning, silently verify response quality.
     // The self-critique is NOT shown to the user — it's a silent quality gate.
-    // UX indicators (stage labels) are handled by the page UI.
+    // If issues are found, the critique is logged internally but the response
+    // is NOT modified — the composers already generate RC5-compliant responses.
+    // Never append fallback questions like "What do you think?" (RC5 #1).
     const selfCritique = this.selfCritique(response, intent, input);
-    // If self-review found issues, silently revise the response
-    if (!selfCritique.includes("ok")) {
-      // Silently adjust: make response more inquiry-focused by appending a question
-      response = response + "\n\nWhat do you think?";
-    }
 
     // ─── RECORD COMPLETION EVENT (PHASE G.0) ──────────────────────────
     ExperienceRecorder.recordEvent("thinking_completed", {
@@ -1274,71 +1271,110 @@ class SpyralCognitiveCoreImpl {
     };
   }
 
-  // ─── SELF-REVIEW: RESPONSE QUALITY FILTER (RC5.1) ────────────────────
+  // ─── SELF-REVIEW: RESPONSE QUALITY FILTER (RC5) ──────────────────────
 
   /**
-   * selfReview() — Response Quality Filter (RC5.1 PART 8).
+   * selfCritique() — Response Quality Filter (RC5).
    *
    * Before every response, silently verify:
-   *   - Am I repeating the user?
-   *   - Am I exposing internal reasoning?
-   *   - Am I writing a report?
-   *   - Am I using a template?
-   *   - Am I asking unnecessary questions?
-   *   - Did I move the user's thinking forward?
+   *   - Am I repeating the user? (RC5.1)
+   *   - Am I exposing internal reasoning? (RC5 #9)
+   *   - Am I writing a report? (RC5.1)
+   *   - Am I using a template or forbidden phrase? (RC5 #12)
+   *   - Am I asking unnecessary questions? (RC5 #1, #4)
+   *   - Would the response stand without the question? Golden Rule (RC5 #13)
+   *   - Did I move the user's thinking forward? (RC5 #3)
    *   - Did I make at least one meaningful connection?
    *   - Would an intelligent human actually say this?
    *
-   * If any answer is "no," flag the issue so the response is revised.
    * Returns internal notes only, never shown to users.
+   * The think() method uses these notes to silently adjust quality.
+   * Never appends fallback questions like "What do you think?"
    */
   private selfCritique(response: string, intent: CognitiveIntent, input: ThinkInput): string {
     const critiques: string[] = [];
     const responseLower = response.toLowerCase();
     const inputLower = input.input.toLowerCase();
 
-    // Check: Am I repeating the user?
+    // ─── RC5 #12: FORBIDDEN PHRASES ───────────────────────────────────
+    const forbiddenPhrases = [
+      "i understand", "i'm here to help", "how can i help", "feel free to ask",
+      "let me know if", "don't hesitate", "is there anything else",
+      "what do you think", "do you have any questions",
+      "let's start with", "tell me about", "i'd like to understand",
+      "can you tell me", "would you like", "i was designed",
+      "as a language model", "as an ai", "my training",
+    ];
+    for (const phrase of forbiddenPhrases) {
+      if (responseLower.includes(phrase)) {
+        critiques.push(`forbidden phrase: "${phrase}"`);
+        break; // One forbidden phrase is enough to flag
+      }
+    }
+
+    // ─── RC5 #13: GOLDEN RULE — Response must stand without question ──
+    const responseQuestions = (response.match(/\?/g) || []).length;
+    const responseLength = response.replace(/\?/g, "").trim().length;
+    if (responseQuestions > 0) {
+      // Check if removing all questions leaves meaningful content
+      const withoutQuestions = response.replace(/[^.!?]*\?/g, "").trim();
+      if (withoutQuestions.length < 30 && responseLength > 50) {
+        critiques.push("golden rule violation: response is mostly questions");
+      }
+    }
+
+    // ─── RC5 #1: QUESTION LOOP DETECTION ──────────────────────────────
+    if (responseQuestions > 2) {
+      critiques.push("too many questions — question loop detected");
+    }
+    // If the response is ENTIRELY a question with no contribution, flag hard
+    if (responseQuestions >= 1 && responseLength < 40) {
+      critiques.push("response is only questions — no contribution");
+    }
+
+    // ─── RC5.1: REPEATING THE USER ────────────────────────────────────
     const inputWords = inputLower.split(/\s+/).filter((w) => w.length > 3);
     const repeatedWords = inputWords.filter((w) => responseLower.includes(w));
     if (repeatedWords.length > inputWords.length * 0.5 && inputWords.length > 3) {
       critiques.push("repeats too much of the user's input");
     }
 
-    // Check: Am I quoting the user unnecessarily?
+    // ─── RC5.1: QUOTING THE USER ──────────────────────────────────────
     const quotedText = response.match(/"([^"]+)"/g);
     if (quotedText && quotedText.length > 1) {
       critiques.push("unnecessarily quotes the user's words");
     }
 
-    // Check: Am I exposing internal reasoning?
+    // ─── RC5 #9: EXPOSING INTERNAL REASONING ──────────────────────────
     const internalTerms = [
       "my reasoning", "hypothesis", "ste strategy", "sve analysis", "sae action",
       "cognitive pipeline", "let me think", "step 1", "step 2", "step 3",
       "observation", "analysis complete", "processing", "internal",
+      "mental model", "reasoning strategy", "cognitive process",
     ];
     const hasInternalTerms = internalTerms.some((term) => responseLower.includes(term));
     if (hasInternalTerms) {
       critiques.push("exposes internal reasoning");
     }
 
-    // Check: Am I writing a report when not requested?
+    // ─── RC5.1: REPORT GENERATION ─────────────────────────────────────
     const reportIndicators = [
       "here is the report", "here is your report", "executive summary",
       "this report", "the following report", "report generated",
     ];
-    const isExplicitReport = inputLower.includes("generate a report") ||
+    const isExplicitReportRequest = inputLower.includes("generate a report") ||
       inputLower.includes("create a report") ||
       inputLower.includes("write a report") ||
       inputLower.includes("summarize everything") ||
       inputLower.includes("export findings");
-    if (!isExplicitReport) {
+    if (!isExplicitReportRequest) {
       const hasReportLanguage = reportIndicators.some((term) => responseLower.includes(term));
       if (hasReportLanguage) {
         critiques.push("generates report without explicit request");
       }
     }
 
-    // Check: Am I using a template opener?
+    // ─── RC5.1: TEMPLATE OPENER ───────────────────────────────────────
     const templateOpeners = [
       "i understand", "you want to", "you asked", "let's investigate",
       "the user", "the prompt", "based on your", "regarding your",
@@ -1348,30 +1384,22 @@ class SpyralCognitiveCoreImpl {
       critiques.push("uses template opener");
     }
 
-    // Check: Am I asking unnecessary questions?
-    const questionCount = (response.match(/\?/g) || []).length;
-    if (intent.reasoningStrategy === "decision" && questionCount > 2) {
-      critiques.push("too many questions for a decision context");
-    }
-    if (questionCount > 3) {
-      critiques.push("asks too many questions");
-    }
-
-    // Check: Did I move the user's thinking forward?
+    // ─── RC5 #3: DID I MOVE THINKING FORWARD? ─────────────────────────
     if (response.length < 50 && intent.complexity !== "low") {
       critiques.push("response too brief to move thinking forward");
     }
-    const forwardIndicors = [
+    const forwardIndicators = [
       "what if", "have you considered", "another way", "the real question",
       "underlying", "connection", "pattern", "assumption", "trade-off",
-      "hidden", "contrary", "perspective", "angle",
+      "hidden", "contrary", "perspective", "angle", "what's the",
+      "consider", "imagine", "suppose", "perhaps", "maybe",
     ];
-    const hasForwardThinking = forwardIndicors.some((term) => responseLower.includes(term));
+    const hasForwardThinking = forwardIndicators.some((term) => responseLower.includes(term));
     if (!hasForwardThinking && !intent.requiresImmediateAnswer) {
       critiques.push("doesn't move thinking forward");
     }
 
-    // Check: Did I make at least one meaningful connection?
+    // ─── RC5.1: MEANINGFUL CONNECTION ─────────────────────────────────
     const connectionIndicators = [
       "reminds me", "similar to", "related to", "connects to",
       "parallel", "pattern", "structure", "like the",
@@ -1381,7 +1409,7 @@ class SpyralCognitiveCoreImpl {
       critiques.push("no meaningful connection made");
     }
 
-    // Check: Would an intelligent human actually say this?
+    // ─── RC5.1: ROBOTIC LANGUAGE ──────────────────────────────────────
     const roboticPatterns = [
       "based on the", "according to my", "as an ai", "i am an",
       "as a language model", "i was designed", "my training",
@@ -1390,9 +1418,18 @@ class SpyralCognitiveCoreImpl {
       critiques.push("sounds robotic or AI-like");
     }
 
-    // Apply revision: prepend the most important critique
+    // ─── AUDIT: If we asked a question, did we contribute first? ──────
+    if (responseQuestions >= 1) {
+      // Check if contribution (text before the first ?) is meaningful
+      const firstQuestionIdx = response.indexOf("?");
+      const beforeQuestion = response.substring(0, firstQuestionIdx).trim();
+      if (beforeQuestion.length < 30) {
+        critiques.push("asked question without contributing first");
+      }
+    }
+
     if (critiques.length > 0) {
-      return `review: ${critiques[0]}`;
+      return `review: ${critiques[0]} (${critiques.length} issues)`;
     }
 
     return "review: ok";

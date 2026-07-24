@@ -24,7 +24,7 @@ export default function ConsultantAgentPage() {
     {
       id: "welcome",
       role: "agent",
-      content: "What's the real challenge here — not the surface problem, but the thing underneath?",
+      content: "What's the decision you're sitting on? Not the easy one — the one where every option comes with a cost.",
       timestamp: new Date(),
     },
   ]);
@@ -141,7 +141,7 @@ export default function ConsultantAgentPage() {
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="What's the real challenge here?"
+              placeholder="What decision are you weighing?"
               className="flex-1 bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-sm text-white placeholder-zinc-600 resize-none focus:outline-none focus:border-zinc-700 transition-colors"
               rows={1}
             />

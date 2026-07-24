@@ -1,96 +1,140 @@
 /**
- * NavigationResponseComposer — Future Planner
+ * NavigationResponseComposer — Future Planner (RC5)
  *
- * RC5.1 Identity: Future Planner.
- * Conversation should feel like moving through reality, not filling out templates.
- * No templates. Natural dialogue about direction, obstacles, and momentum.
+ * IDENTITY: Future Planner. A strategic navigator, not an interviewer.
+ * Always thinks in journeys. Never interviews.
+ *
+ * Every response follows: Understand → Think → Contribute → (Optional) One question
+ * The contribution MUST stand on its own if the question were removed.
  *
  * Workflow:
  *   "I'm here" → "I want to be here" → "Let's build the bridge."
  *
  * Never asks for information unless it can immediately use it.
- * Reports are ONLY generated when the user explicitly requests one.
+ * Conversation should feel like moving through reality, not filling out forms.
  */
 
 import type { ResponseComposer, ComposerInput, ComposerContext } from "./ResponseComposer";
-import { getNaturalTechniqueHint } from "@/features/cognitive-techniques";
 
-// ─── Planning Phase — Understanding direction and momentum ────────────────
+// ─── Internal Navigation Thinking ───────────────────────────────────────────
 
-const planningResponses = [
-  "The hardest part of any journey isn't the distance — it's knowing which direction actually matters. Where are you right now, and what's telling you it's time to move?",
-  "Before we map the route — where are you starting from? Understanding the starting point is as important as the destination.",
-  "What's the gap between where you are and where you want to be? Not the distance — the real gap.",
-  "Every journey starts with a decision to move. What's making this the right time?",
-];
+/**
+ * Think about the user's direction, obstacles, and momentum.
+ * Always sees journeys, not questions to answer.
+ */
+function think(input: string, turnCount: number): string[] {
+  const thoughts: string[] = [];
+  const lower = input.toLowerCase();
 
-const obstacleResponses = [
-  "What's the biggest obstacle between where you are and where you want to be?",
-  "If there was one thing that could derail this, what would it be?",
-  "What have you already tried that didn't work? That's often more useful than what did.",
-];
+  // Detect journey language
+  if (lower.includes("want") || lower.includes("goal") || lower.includes("future") || lower.includes("next")) {
+    thoughts.push("Direction is more important than speed. Getting somewhere meaningful beats getting anywhere fast.");
+  }
 
-const momentumResponses = [
-  "What's the smallest step you could take right now that would create momentum?",
-  "Momentum comes from action, not planning. What can you do this week that would prove the direction?",
-  "The first step doesn't need to be perfect — it needs to be real. What's real enough to start?",
-];
+  // Detect obstacle awareness
+  if (lower.includes("hard") || lower.includes("difficult") || lower.includes("stuck") || lower.includes("problem")) {
+    thoughts.push("Obstacles aren't roadblocks — they're data. The nature of the resistance tells you something about the terrain ahead.");
+  }
 
-const discoveryQuestions = [
-  "If you could be exactly where you want to be six months from now, what would that look like?",
-  "What have you already figured out about the path forward?",
-  "Who's already made this journey that you could learn from?",
-  "What does success actually look like — not in theory, but in reality?",
-  "What resources do you already have that you're not fully using?",
-];
+  // Detect momentum signals
+  if (lower.includes("start") || lower.includes("begin") || lower.includes("first step") || lower.includes("ready")) {
+    thoughts.push("The first step doesn't need to be perfect — it needs to be real. Action reveals information that planning never can.");
+  }
 
-// ─── Helper ─────────────────────────────────────────────────────────────────
+  // First-turn orientation
+  if (turnCount === 0) {
+    thoughts.push("Every journey exists in three dimensions: where you are, where you want to be, and what's between them. Understanding all three is the only way to find a real path.");
+  }
 
-function pick<T>(arr: T[], seed: string): T {
-  return arr[seed.length % arr.length];
+  return thoughts;
 }
 
 /**
- * Navigation Response Composer.
- * RC5.1: Future planner — no templates, just direction and momentum.
- * Conversation feels like moving through reality.
- * Only generates structured output when the user explicitly requests one.
+ * Contribute navigation value — direction, mapping, momentum.
+ */
+function contribute(input: string, thoughts: string[], turnCount: number): string {
+  const lower = input.toLowerCase();
+
+  // Handle resistance
+  if (lower.includes("i don't know") || lower.includes("not sure") || lower.includes("no idea")) {
+    return "You don't need to know the whole path to start moving. What matters is knowing your next step — just the next one. What's one thing you're certain about, even if it's just the direction you want to face?";
+  }
+
+  // Handle frustration
+  if (lower.includes("this isn't helpful") || lower.includes("not what i") || lower.includes("wrong")) {
+    return "Let me recalibrate. The path forward needs to make sense from where you're actually standing, not from where I assumed you were. What's actually true about your situation right now?";
+  }
+
+  // Core navigation contribution
+  if (turnCount === 0) {
+    return "The most important question isn't where you want to be — it's understanding where you actually are right now. Most people underestimate the starting point and overestimate the destination. The real work is in the gap between them, and that gap is full of assumptions that need testing. Let's start by mapping what's real about your current position.";
+  } else if (turnCount <= 2) {
+    return "Here's what I see: the gap between current reality and desired reality is rarely a straight line. The path isn't a roadmap — it's a series of experiments. Each step teaches you something that changes the next step. The goal isn't to plan the whole journey upfront. It's to build enough momentum that the path reveals itself as you move.";
+  } else {
+    return "Let me zoom out for a moment. The journey isn't just about reaching a destination — it's about what you learn about yourself and your direction along the way. Sometimes the most valuable outcome isn't getting where you thought you wanted to go, but discovering a better destination through the process of moving.";
+  }
+}
+
+/**
+ * Optionally ask one navigational question — only if it clarifies direction.
+ */
+function maybeAskQuestion(input: string, turnCount: number): string | null {
+  const lower = input.toLowerCase();
+
+  // Never ask on first turn
+  if (turnCount <= 0) return null;
+
+  // Don't ask if user is stuck or frustrated
+  if (lower.length < 15 || lower.includes("not what") || lower.includes("isn't helpful")) return null;
+
+  // Navigation questions — always about direction, never padding
+  if (turnCount <= 2) return null; // Contribute more first
+
+  const questions = [
+    "What's the smallest step you could take right now that would create momentum?",
+    "What would success look like at this point — not the final destination, but the next milestone?",
+    "What resource do you already have that you're not fully using?",
+  ];
+
+  const idx = (input.length + turnCount) % questions.length;
+  return questions[idx];
+}
+
+// ─── Main Composer ──────────────────────────────────────────────────────────
+
+/**
+ * Navigation Response Composer (RC5).
+ * Future Planner — thinks in journeys, never interviews.
+ * Direction, obstacles, momentum. Natural dialogue.
  */
 export const NavigationResponseComposer: ResponseComposer = (
   input: ComposerInput,
   context?: ComposerContext,
 ): string => {
-  const strategy = input.response.intent.reasoningStrategy;
-  const seed = input.input.input;
   const turnCount = context?.turnCount || 0;
-  const text = input.input.input.toLowerCase();
+  const text = input.input.input;
 
-  // Check if user explicitly requested a report
-  const isExplicitReportRequest = /generate.*plan|create.*plan|write.*plan|navigation plan|execution plan|roadmap|timeline/i.test(text);
+  // Step 1: Think about the journey
+  const thoughts = think(text, turnCount);
 
-  if (isExplicitReportRequest) {
-    return "Let me pull together what we've discussed into a clear direction. Here's what I see as the path forward.";
+  // Step 2: Contribute navigation value
+  const contribution = contribute(text, thoughts, turnCount);
+
+  // Step 3: Optional question
+  const question = maybeAskQuestion(text, turnCount);
+
+  // Build response
+  const parts: string[] = [];
+
+  if (thoughts.length > 0) {
+    parts.push(thoughts[thoughts.length - 1]);
   }
 
-  let response: string;
+  parts.push(contribution);
 
-  if (turnCount === 0 && (strategy === "planning" || turnCount === 0)) {
-    response = pick(planningResponses, seed);
-  } else if (turnCount === 1) {
-    response = pick(obstacleResponses, seed + "obs");
-  } else if (turnCount === 2) {
-    response = pick(momentumResponses, seed + "mom");
-  } else {
-    response = pick(discoveryQuestions, seed + String(turnCount));
+  if (question) {
+    parts.push(question);
   }
 
-  // Optionally weave in a cognitive technique hint
-  if (turnCount > 1 && Math.random() < 0.25) {
-    const hint = getNaturalTechniqueHint(seed, "navigation", turnCount);
-    if (hint && !response.includes(hint)) {
-      response = `${response}\n\n${hint}`;
-    }
-  }
-
-  return response;
+  return parts.join("\n\n");
 };

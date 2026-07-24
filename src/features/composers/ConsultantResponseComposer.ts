@@ -1,116 +1,164 @@
 /**
- * ConsultantResponseComposer — Executive Thinking Partner
+ * ConsultantResponseComposer — Executive Thinking Partner (RC5)
  *
- * RC5.1 Identity: Executive Thinking Partner.
+ * IDENTITY: Executive Thinking Partner. Senior strategist, not an interviewer.
  * Challenges assumptions. Presents trade-offs. Reveals hidden consequences.
- * Recommends direction. Never generates business reports automatically.
+ * Recommends direction. Never generates reports automatically.
+ *
+ * Every response follows: Understand → Think → Contribute → (Optional) One question
+ * The contribution MUST stand on its own if the question were removed.
  *
  * Workflow:
- *   Challenge assumptions → Present trade-offs →
+ *   Read the room → Challenge assumptions → Present trade-offs →
  *   Reveal hidden consequences → Recommend direction
  *
- * Reads the room. Never dumps reports.
- * Only generates structured output when the user explicitly requests one.
+ * Never asks questions that pad the conversation. Every question earns its place.
  */
 
 import type { ResponseComposer, ComposerInput, ComposerContext } from "./ResponseComposer";
-import { getNaturalTechniqueHint } from "@/features/cognitive-techniques";
 
-// ─── Decision Mode — Weighing options, revealing trade-offs ───────────────
+// ─── Internal Strategic Thinking ────────────────────────────────────────────
 
-const decisionOpeners = [
-  "This feels like one of those situations where there's no perfect answer — just trade-offs. What matters most to you in this decision?",
-  "Every decision is a bet on a particular view of the future. What assumptions are you betting on here?",
-  "Before we weigh options, let's clarify what success looks like. What would have to be true for you to feel good about this choice a year from now?",
-  "The best decisions come from understanding what you're willing to sacrifice. What are you willing to give up to get this?",
-];
+/**
+ * Think strategically about the user's situation.
+ * Identifies hidden dynamics, second-order effects, and assumptions worth testing.
+ */
+function think(input: string, strategy: string, turnCount: number): string[] {
+  const thoughts: string[] = [];
+  const lower = input.toLowerCase();
 
-const tradeOffResponses = [
-  "If you optimize for one thing, something else gets de-prioritized. What are you optimizing for here?",
-  "There's always a hidden cost to every choice. What's the cost of choosing this path?",
-  "The opposite of this choice also has merits. What would be true if you chose the other option?",
-];
+  // Detect decision-making patterns
+  if (lower.includes("should i") || lower.includes("which") || lower.includes("compare") || lower.includes("option")) {
+    thoughts.push("The best decision isn't about choosing the right option — it's about understanding which assumptions make one option better than the other.");
+  }
 
-const hiddenConsequenceResponses = [
-  "There's a second-order effect worth considering here. If this works, what breaks?",
-  "This choice doesn't just affect the immediate outcome — it sets a precedent. What precedent does it set?",
-  "Sometimes the real consequence isn't the one you're thinking about. What else changes when this happens?",
-];
+  // Detect trade-off territory
+  if (lower.includes("but") || lower.includes("cost") || lower.includes("risk") || lower.includes("trade")) {
+    thoughts.push("Every choice has a hidden cost. The question isn't what you gain — it's what you're willing to lose.");
+  }
 
-// ─── Discovery Mode — Exploring the real challenge ────────────────────────
+  // Detect overconfidence
+  if (lower.includes("obvious") || lower.includes("clearly") || lower.includes("definitely")) {
+    thoughts.push("When something seems obvious, that's usually where the most dangerous assumptions hide.");
+  }
 
-const challengeQuestions = [
-  "What's the real challenge here — not the surface problem, but the thing underneath?",
-  "If you could wave a wand and have this solved, what would be different?",
-  "What have you already tried that hasn't worked, and what did that teach you?",
-  "Who else sees this situation differently, and what might they be right about?",
-  "What would someone who disagrees with you say about this?",
-];
+  // First-turn strategic framing
+  if (turnCount === 0) {
+    thoughts.push("The quality of any decision is determined by the quality of the framing. Let me make sure I understand the real question before we dive into answers.");
+  }
 
-const followUpQuestions = [
-  "I'm curious — what makes this worth solving right now?",
-  "Between all the things competing for your attention, why this?",
-  "What's the cost of not deciding?",
-  "What are you assuming that, if it weren't true, would change everything?",
-];
+  // Second-order thinking
+  if (turnCount >= 1) {
+    thoughts.push("Beyond the immediate outcome, what second-order effects might ripple from this choice? The consequences you don't see are usually the ones that matter most.");
+  }
 
-// ─── Helper ─────────────────────────────────────────────────────────────────
-
-function pick<T>(arr: T[], seed: string): T {
-  return arr[seed.length % arr.length];
+  return thoughts;
 }
 
 /**
- * Consultant Response Composer.
- * RC5.1: Executive Thinking Partner — challenge, reveal, recommend.
- * Never dumps reports. Reads the room.
- * Only generates structured output when the user explicitly requests one.
+ * Contribute strategic value — challenge, reveal, recommend.
+ * This is the core of the consultant's value.
+ */
+function contribute(input: string, thoughts: string[], strategy: string, turnCount: number): string {
+  const lower = input.toLowerCase();
+
+  // Handle resistance
+  if (lower.includes("i don't know") || lower.includes("not sure") || lower.includes("maybe")) {
+    return "Uncertainty is useful — it tells us where the real work is. Let's identify what you're uncertain about and figure out whether more information would actually change the decision. Often, we already know enough to act. The question is whether we're willing to act on what we know.";
+  }
+
+  // Handle frustration
+  if (lower.includes("this isn't helpful") || lower.includes("not what i") || lower.includes("wrong")) {
+    return "You're right to push back. Let me reframe. What matters here isn't my analysis — it's your reality. What constraint or dynamic am I missing that's actually driving this?";
+  }
+
+  // Strategic contribution
+  if (strategy === "decision" || lower.includes("should i") || lower.includes("which") || lower.includes("option")) {
+    if (turnCount === 0) {
+      return "Every decision is a bet on a particular view of the future. The goal isn't to eliminate uncertainty — it's to understand what you're betting on and whether you're okay with losing that bet. Let's work through what evidence would change your confidence in each path.";
+    } else {
+      return "Here's what I see: the trade-off isn't between good and bad options. It's between different kinds of risk. One path has known risks you can mitigate. The other has unknown risks you can't plan for. The question is which type of uncertainty you're better positioned to handle.";
+    }
+  }
+
+  // Default: challenge mode
+  if (turnCount === 0) {
+    return "Most challenges aren't what they first appear. The surface problem is rarely the real one. Let me test a hypothesis: the thing you think is the obstacle — what if it's actually a signal pointing toward the right direction?";
+  }
+
+  return "Stepping back, I see a pattern worth examining. The constraints you're describing aren't obstacles — they're the structure of the problem itself. The solution usually emerges not from removing constraints, but from understanding why they exist and working within their logic.";
+}
+
+/**
+ * Optionally ask one strategic question — only if it would change the analysis.
+ */
+function maybeAskQuestion(input: string, strategy: string, turnCount: number): string | null {
+  const lower = input.toLowerCase();
+
+  // First turn: no question, just contribute
+  if (turnCount <= 0) return null;
+
+  // Don't ask if user is frustrated
+  if (lower.includes("not what") || lower.includes("wrong") || lower.includes("isn't helpful")) return null;
+
+  // Decision context: ask if there's a real fork
+  if (strategy === "decision" || lower.includes("should i") || lower.includes("option")) {
+    if (turnCount <= 2) return null; // contribute more first
+    const decisionQuestions = [
+      "What would have to be true for each option to be the right one?",
+      "What's the cost of being wrong about each path?",
+      "What would you advise someone else in this exact situation?",
+    ];
+    return decisionQuestions[(input.length + turnCount) % decisionQuestions.length];
+  }
+
+  // General strategic question
+  const questions = [
+    "What assumption here is the most dangerous if it's wrong?",
+    "What would you do if you couldn't make the wrong choice?",
+    "What's the hidden cost of not deciding?",
+  ];
+
+  const idx = (input.length + turnCount) % questions.length;
+  return idx === 0 ? null : questions[idx]; // Often no question
+}
+
+// ─── Main Composer ──────────────────────────────────────────────────────────
+
+/**
+ * Consultant Response Composer (RC5).
+ * Executive Thinking Partner — challenge, reveal, recommend.
+ * Never interviews. Strategic value first.
  */
 export const ConsultantResponseComposer: ResponseComposer = (
   input: ComposerInput,
   context?: ComposerContext,
 ): string => {
   const strategy = input.response.intent.reasoningStrategy;
-  const seed = input.input.input;
   const turnCount = context?.turnCount || 0;
-  const text = input.input.input.toLowerCase();
+  const text = input.input.input;
 
-  // Check if user explicitly requested a report
-  const isExplicitReportRequest = /generate.*report|create.*report|write.*report|executive summary|strategy report|analysis report/i.test(text);
+  // Step 1: Think strategically
+  const thoughts = think(text, strategy, turnCount);
 
-  if (isExplicitReportRequest) {
-    return "There's a lot to unpack here. Let me pull together what I think are the key threads before we go further.";
+  // Step 2: Contribute strategic value
+  const contribution = contribute(text, thoughts, strategy, turnCount);
+
+  // Step 3: Optional question
+  const question = maybeAskQuestion(text, strategy, turnCount);
+
+  // Build response
+  const parts: string[] = [];
+
+  if (thoughts.length > 0) {
+    parts.push(thoughts[thoughts.length - 1]);
   }
 
-  if (strategy === "decision") {
-    if (turnCount === 0) {
-      return pick(decisionOpeners, seed);
-    }
-    if (turnCount === 1) {
-      return pick(tradeOffResponses, seed + "trade");
-    }
-    if (turnCount === 2) {
-      return pick(hiddenConsequenceResponses, seed + "hidden");
-    }
-    const followUp = pick(followUpQuestions, seed + "follow" + turnCount);
-    return followUp;
+  parts.push(contribution);
+
+  if (question) {
+    parts.push(question);
   }
 
-  // Default: challenge mode
-  if (turnCount === 0) {
-    return pick(challengeQuestions, seed);
-  }
-
-  const followUp = pick(followUpQuestions, seed + String(turnCount));
-
-  // Optionally weave in a cognitive technique hint
-  let response = followUp;
-  if (turnCount > 1 && Math.random() < 0.3) {
-    const hint = getNaturalTechniqueHint(seed, "consultant", turnCount);
-    if (hint && !response.includes(hint)) {
-      response = `${hint}\n\n${response}`;
-    }
-  }
-
-  return response;
+  return parts.join("\n\n");
 };

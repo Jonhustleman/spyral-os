@@ -28,7 +28,6 @@ import {
   TrendingUp,
   Target,
   AlertTriangle,
-  FileText,
   Shield,
   BarChart3,
   RefreshCw,
@@ -153,7 +152,6 @@ export function RealityCanvas({ workspaceId }: RealityCanvasProps) {
     { id: "metrics", label: "Current Reality", icon: BarChart3 },
     { id: "goals", label: "Desired Reality", icon: Target },
     { id: "gaps", label: "Gap Summary", icon: AlertTriangle },
-    { id: "evidence", label: "Evidence", icon: FileText },
     { id: "constraints", label: "Constraints", icon: Shield },
   ];
 
@@ -488,13 +486,6 @@ export function RealityCanvas({ workspaceId }: RealityCanvasProps) {
           </div>
         );
 
-      case "evidence":
-        return (
-          <div className="space-y-4">
-            <EvidenceSection workspaceId={workspaceId} evidence={snapshot.evidence} />
-          </div>
-        );
-
       case "constraints":
         return (
           <div className="space-y-4">
@@ -536,96 +527,6 @@ export function RealityCanvas({ workspaceId }: RealityCanvasProps) {
     </div>
   );
 }
-
-// ─── Evidence Section ──────────────────────────────────────────────────────
-
-function EvidenceSection({
-  workspaceId,
-  evidence,
-}: {
-  workspaceId: string;
-  evidence: RealitySnapshot["evidence"];
-}) {
-  const [newEvidence, setNewEvidence] = useState({ title: "", content: "", source: "" });
-
-  const handleAdd = () => {
-    if (!newEvidence.title || !newEvidence.content) return;
-    RealityStore.addEvidence(workspaceId, {
-      title: newEvidence.title,
-      content: newEvidence.content,
-      source: newEvidence.source || "Manual entry",
-      collectedAt: new Date(),
-    });
-    setNewEvidence({ title: "", content: "", source: "" });
-  };
-
-  return (
-    <>
-      {evidence.length === 0 ? (
-        <div className="rounded-lg border border-zinc-800 bg-zinc-900/30 p-6 text-center">
-          <FileText className="h-8 w-8 text-zinc-700 mx-auto mb-2" />
-          <p className="text-sm text-zinc-500">No evidence recorded yet.</p>
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {evidence.map((ev, i) => (
-            <div key={ev.id ?? i} className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-3">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm font-medium text-white">{ev.title}</p>
-                  <p className="text-xs text-zinc-400 mt-0.5">{ev.content}</p>
-                  <p className="text-[10px] text-zinc-600 mt-1">Source: {ev.source}</p>
-                </div>
-                <button
-                  onClick={() => RealityStore.deleteEvidence(workspaceId, ev.id!)}
-                  className="flex h-7 w-7 items-center justify-center rounded-md text-zinc-600 hover:bg-zinc-800 hover:text-red-400 transition-colors shrink-0"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      <div className="rounded-lg border border-zinc-800 bg-zinc-900/30 p-4">
-        <p className="text-xs font-medium text-zinc-400 mb-3 uppercase tracking-wider">Add Evidence</p>
-        <div className="space-y-2">
-          <input
-            type="text"
-            value={newEvidence.title}
-            onChange={(e) => setNewEvidence((p) => ({ ...p, title: e.target.value }))}
-            placeholder="Evidence title"
-            className="w-full rounded-md border border-zinc-800 bg-zinc-950 px-3 py-1.5 text-xs text-white placeholder-zinc-600 focus:border-zinc-600 focus:outline-none"
-          />
-          <textarea
-            value={newEvidence.content}
-            onChange={(e) => setNewEvidence((p) => ({ ...p, content: e.target.value }))}
-            placeholder="Evidence content"
-            rows={2}
-            className="w-full rounded-md border border-zinc-800 bg-zinc-950 px-3 py-1.5 text-xs text-white placeholder-zinc-600 focus:border-zinc-600 focus:outline-none resize-none"
-          />
-          <input
-            type="text"
-            value={newEvidence.source}
-            onChange={(e) => setNewEvidence((p) => ({ ...p, source: e.target.value }))}
-            placeholder="Source (optional)"
-            className="w-full rounded-md border border-zinc-800 bg-zinc-950 px-3 py-1.5 text-xs text-white placeholder-zinc-600 focus:border-zinc-600 focus:outline-none"
-          />
-          <button
-            onClick={handleAdd}
-            disabled={!newEvidence.title || !newEvidence.content}
-            className="flex items-center gap-1.5 rounded-md bg-white px-3 py-1.5 text-xs font-medium text-black hover:bg-zinc-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            <Plus className="h-3 w-3" />
-            Add Evidence
-          </button>
-        </div>
-      </div>
-    </>
-  );
-}
-
 // ─── Constraints Section ───────────────────────────────────────────────────
 
 function ConstraintsSection({

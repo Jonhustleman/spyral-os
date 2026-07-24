@@ -24,7 +24,7 @@ export default function ResearchAgentPage() {
     {
       id: "welcome",
       role: "agent",
-      content: "What made this idea stick with you?",
+      content: "What's the question that's been pulling at you? Not the easy one — the one that keeps coming back.",
       timestamp: new Date(),
     },
   ]);
@@ -142,7 +142,7 @@ export default function ResearchAgentPage() {
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="What made this idea stick with you?"
+              placeholder="What's worth investigating?"
               className="flex-1 bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-sm text-white placeholder-zinc-600 resize-none focus:outline-none focus:border-zinc-700 transition-colors"
               rows={1}
             />

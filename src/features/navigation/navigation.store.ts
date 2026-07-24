@@ -152,19 +152,19 @@ function missingInformation(session: NavigationSession): string | null {
 
   switch (session.stage) {
     case NavigationStage.INTENT:
-      if (!ctx.intent) return "Where do you want to go today—in reality?";
+      if (!ctx.intent) return "Tell me about the direction you're considering.";
       return null;
 
     case NavigationStage.CLARIFICATION:
-      if (!ctx.intent) return "What do you want to achieve?";
-      if (!ctx.targetDate) return "What's your target date for achieving this?";
+      if (!ctx.intent) return "Help me understand what you're aiming for.";
+      if (!ctx.targetDate) return "What timeframe are you thinking about for this?";
       return null;
 
     case NavigationStage.REALITY:
-      return "We need your current reality assessment before we can proceed.";
+      return "Let's understand where you're starting from. Share what's true about your current situation.";
 
     case NavigationStage.GAP:
-      return "We need to define the gap between current reality and your goal.";
+      return "Let's figure out what's between where you are and where you want to be.";
 
     case NavigationStage.DECISION:
       return null; // Decision Studio handles its own questions

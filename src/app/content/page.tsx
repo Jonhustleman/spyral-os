@@ -24,7 +24,7 @@ export default function ContentAgentPage() {
     {
       id: "welcome",
       role: "agent",
-      content: "What reaction do you want someone to have after experiencing this?",
+      content: "There's a story here that only you can tell. What's the feeling someone should walk away with?",
       timestamp: new Date(),
     },
   ]);
@@ -141,7 +141,7 @@ export default function ContentAgentPage() {
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="What reaction do you want someone to have?"
+              placeholder="What story needs to be told?"
               className="flex-1 bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-sm text-white placeholder-zinc-600 resize-none focus:outline-none focus:border-zinc-700 transition-colors"
               rows={1}
             />

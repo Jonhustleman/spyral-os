@@ -4,19 +4,17 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 /**
- * Thinking Indicator — human-readable stage indicators.
+ * Thinking Indicator — simple loading indicator.
  *
- * Shows cycling stage messages while processing.
- * These are UI indicators ONLY — never reveals internal reasoning.
+ * Shows cycling messages while processing.
+ * These are purely decorative — never reveals internal reasoning or pipeline stages.
+ * Per RC5 #9: No thinking stages, no internal process labels exposed.
  */
 const STAGES = [
-  { icon: "🧭", label: "Understanding your goal..." },
-  { icon: "🔍", label: "Looking for similar situations..." },
-  { icon: "🧠", label: "Finding hidden assumptions..." },
-  { icon: "🧩", label: "Testing possible paths..." },
-  { icon: "⚖️", label: "Comparing alternatives..." },
-  { icon: "📍", label: "Designing the strongest approach..." },
-  { icon: "✨", label: "Almost ready..." },
+  { icon: "🧭", label: "Thinking..." },
+  { icon: "🔄", label: "Processing..." },
+  { icon: "⚡", label: "Working..." },
+  { icon: "💡", label: "Almost there..." },
 ];
 
 interface ThinkingIndicatorProps {
