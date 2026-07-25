@@ -93,7 +93,9 @@ export async function* routeReasoningStream(
     // Determine model for this provider
     let modelToUse = profile.preferredModel;
     const providerConfig = allProviders.find(p => p.type === providerType);
-    if (providerConfig && providerConfig.models.length > 0) {
+    // Only use the first model from the provider's list if this is NOT the preferred provider
+    // (the preferred provider already has a specific model in the profile)
+    if (providerConfig && providerConfig.models.length > 0 && providerType !== profile.preferredProvider) {
       modelToUse = providerConfig.models[0]?.id ?? modelToUse;
     }
 
