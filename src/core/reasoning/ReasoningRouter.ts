@@ -122,10 +122,10 @@ export async function* routeReasoningStream(
           finalResult.reasoning = { durationMs: Date.now() - startTime };
         }
 
-        // Check if the result has an auth/validation error — if so, try next provider
+        // Check if the result has an error that another provider might not have — try next provider
         if (finalResult.error) {
-          const authCodes = ["AUTHENTICATION_ERROR", "API_KEY_MISSING", "INVALID_REQUEST", "API_ERROR_400"];
-          if (authCodes.includes(finalResult.error.code)) {
+          const retryCodes = ["AUTHENTICATION_ERROR", "API_KEY_MISSING", "INVALID_REQUEST", "API_ERROR_400", "API_ERROR_402", "QUOTA_EXCEEDED"];
+          if (retryCodes.includes(finalResult.error.code)) {
             lastError = finalResult;
             if (process.env.NODE_ENV === "development" || process.env.DEV_MODE === "true") {
               console.log(`[ReasoningRouter] ${providerType} failed with ${finalResult.error.code}, trying next provider...`);
@@ -160,10 +160,10 @@ export async function* routeReasoningStream(
         result.reasoning = { durationMs: Date.now() - startTime };
       }
 
-      // Check for auth errors — try next provider
+      // Check for errors that another provider might not have — try next provider
       if (result.error) {
-        const authCodes = ["AUTHENTICATION_ERROR", "API_KEY_MISSING", "INVALID_REQUEST", "API_ERROR_400"];
-        if (authCodes.includes(result.error.code)) {
+        const retryCodes = ["AUTHENTICATION_ERROR", "API_KEY_MISSING", "INVALID_REQUEST", "API_ERROR_400", "API_ERROR_402", "QUOTA_EXCEEDED"];
+        if (retryCodes.includes(result.error.code)) {
           lastError = result;
           if (process.env.NODE_ENV === "development" || process.env.DEV_MODE === "true") {
             console.log(`[ReasoningRouter] ${providerType} non-streaming failed with ${result.error.code}, trying next provider...`);
