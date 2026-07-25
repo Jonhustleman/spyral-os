@@ -12,11 +12,24 @@
 import { useState, useEffect } from "react";
 import { Bug, X, Clock, Cpu, Database, Brain, BarChart } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { CognitiveResponse } from "@/core";
+
+// Overlay data type matching the API response
+interface OverlayData {
+  reasoningResult?: {
+    provider: string;
+    model: string;
+    usage: { inputTokens: number; outputTokens: number; totalTokens: number };
+    reasoning?: { durationMs: number };
+    cached: boolean;
+    error?: { code: string; message: string; recoverable?: boolean };
+  };
+  response: string;
+  agentType: string;
+}
 
 interface DeveloperOverlayProps {
-  /** The most recent CognitiveResponse from think/thinkStream */
-  lastResponse: CognitiveResponse | null;
+  /** The most recent response data from the reasoning API */
+  lastResponse: OverlayData | null;
   /** Whether Developer Mode is enabled (from parent state). 
    *  If provided, overrides localStorage read. */
   enabled?: boolean;
@@ -43,54 +56,52 @@ export function DeveloperOverlay({ lastResponse, enabled: enabledProp }: Develop
 
   if (!enabled || !lastResponse) return null;
 
-  const { reasoningResult, reasoningPackage } = lastResponse;
+  const { reasoningResult } = lastResponse;
 
   const stats = [
     {
       label: "Provider",
-      value: reasoningResult.provider || "unknown",
+      value: reasoningResult?.provider || "N/A",
       icon: Cpu,
     },
     {
       label: "Model",
-      value: reasoningResult.model || "unknown",
+      value: reasoningResult?.model || "N/A",
       icon: Cpu,
     },
     {
       label: "Latency",
-      value: reasoningResult.reasoning?.durationMs
+      value: reasoningResult?.reasoning?.durationMs
         ? formatMs(reasoningResult.reasoning.durationMs)
         : "N/A",
       icon: Clock,
     },
     {
       label: "Input Tokens",
-      value: reasoningResult.usage.inputTokens.toLocaleString(),
+      value: reasoningResult?.usage?.inputTokens?.toLocaleString() ?? "N/A",
       icon: BarChart,
     },
     {
       label: "Output Tokens",
-      value: reasoningResult.usage.outputTokens.toLocaleString(),
+      value: reasoningResult?.usage?.outputTokens?.toLocaleString() ?? "N/A",
       icon: BarChart,
     },
     {
       label: "Total Tokens",
-      value: reasoningResult.usage.totalTokens.toLocaleString(),
+      value: reasoningResult?.usage?.totalTokens?.toLocaleString() ?? "N/A",
       icon: BarChart,
     },
     {
       label: "Memory Items",
-      value: reasoningPackage.identityMemory.length.toString(),
+      value: "N/A",
       icon: Database,
     },
     {
       label: "Patterns",
-      value: reasoningPackage.patterns.length.toString(),
+      value: "N/A",
       icon: Brain,
     },
   ];
-
-  const mind = reasoningPackage.mind;
 
   return (
     <div
@@ -142,44 +153,23 @@ export function DeveloperOverlay({ lastResponse, enabled: enabledProp }: Develop
             ))}
           </div>
 
-          {/* WorkingMind Summary */}
-          {mind && (
-            <div className="space-y-1.5 px-2 py-1.5 rounded bg-zinc-800/50">
+          {/* Error Display */}
+          {reasoningResult?.cached && (
+            <div className="px-2 py-1.5 rounded bg-zinc-800/50">
               <p className="text-[10px] text-zinc-500 uppercase tracking-wide font-medium">
-                WorkingMind
+                Status
               </p>
-              <div className="space-y-0.5 text-xs text-zinc-300 font-mono">
-                <p>
-                  <span className="text-zinc-500">Goal:</span>{" "}
-                  {mind.goal || "—"}
-                </p>
-                <p>
-                  <span className="text-zinc-500">Context:</span>{" "}
-                  {mind.context?.slice(0, 80) || "—"}
-                  {mind.context && mind.context.length > 80 ? "…" : ""}
-                </p>
-                <p>
-                  <span className="text-zinc-500">Entities:</span>{" "}
-                  {mind.entities?.length ?? 0}
-                </p>
-                <p>
-                  <span className="text-zinc-500">Unknowns:</span>{" "}
-                  {mind.unknowns?.length ?? 0}
-                </p>
-                <p>
-                  <span className="text-zinc-500">Directions:</span>{" "}
-                  {mind.possibleDirections?.length ?? 0}
-                </p>
-                {reasoningResult.cached && (
-                  <p className="text-yellow-400">⚡ Cached response</p>
-                )}
-                {reasoningResult.error && (
-                  <p className="text-red-400">
-                    ⚠ {reasoningResult.error.code}:{" "}
-                    {reasoningResult.error.message}
-                  </p>
-                )}
-              </div>
+              <p className="text-xs text-yellow-400 mt-1">⚡ Cached response</p>
+            </div>
+          )}
+          {reasoningResult?.error && (
+            <div className="px-2 py-1.5 rounded bg-red-900/30 border border-red-800/50">
+              <p className="text-[10px] text-zinc-500 uppercase tracking-wide font-medium">
+                Error
+              </p>
+              <p className="text-xs text-red-400 mt-1">
+                ⚠ {reasoningResult.error.code}: {reasoningResult.error.message}
+              </p>
             </div>
           )}
         </div>

@@ -6,8 +6,6 @@ import { DeveloperOverlay } from "@/components/dev/DeveloperOverlay";
 import Link from "next/link";
 import { Send, Home, Bug } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { SpyralCognitiveCore } from "@/core";
-import type { CognitiveResponse } from "@/core";
 
 // ─── Message types ─────────────────────────────────────────────────────────
 
@@ -17,6 +15,19 @@ type Message = {
   content: string;
   timestamp: Date;
 };
+
+// Type for the developer overlay (subset of CognitiveResponse from the API)
+interface OverlayData {
+  reasoningResult?: {
+    provider: string;
+    model: string;
+    usage: { inputTokens: number; outputTokens: number; totalTokens: number };
+    reasoning?: { durationMs: number };
+    cached: boolean;
+  };
+  response: string;
+  agentType: string;
+}
 
 // ─── Research Agent Page ────────────────────────────────────────────────────
 
@@ -31,7 +42,7 @@ export default function ResearchAgentPage() {
     },
   ]);
   const [isThinking, setIsThinking] = useState(false);
-  const [lastResponse, setLastResponse] = useState<CognitiveResponse | null>(null);
+  const [lastResponse, setLastResponse] = useState<OverlayData | null>(null);
   const [devModeEnabled, setDevModeEnabled] = useState(() => {
     if (typeof window !== "undefined") {
       try {
@@ -71,36 +82,96 @@ export default function ResearchAgentPage() {
     };
     setMessages((prev) => [...prev, agentMsg]);
 
-    // Stream the response
-    const cognitiveResponse = await SpyralCognitiveCore.thinkStream(
-      {
-        input: prompt,
-        agentType: "research",
-        researchMode: "discovery",
-      },
-      (chunk) => {
-        // Append each chunk to the agent message
-        setMessages((prev) =>
-          prev.map((msg) =>
-            msg.id === agentId
-              ? { ...msg, content: msg.content + chunk }
-              : msg,
-          ),
-        );
-      },
-    );
+    // Stream the response via the API route (server-side reasoning)
+    let accumulatedContent = "";
+    let finalResult: OverlayData | null = null;
 
-    // Save for Developer Overlay
-    setLastResponse(cognitiveResponse);
+    try {
+      const response = await fetch("/api/reasoning", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          input: prompt,
+          agentType: "research",
+          researchMode: "discovery",
+        }),
+      });
 
-    // Finalize with the formatted response from the composer
-    setMessages((prev) =>
-      prev.map((msg) =>
-        msg.id === agentId
-          ? { ...msg, content: cognitiveResponse.response }
-          : msg,
-      ),
-    );
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error("No response stream");
+
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          const jsonStr = line.slice(6).trim();
+          if (!jsonStr) continue;
+
+          try {
+            const event = JSON.parse(jsonStr);
+
+            if (event.type === "chunk") {
+              accumulatedContent += event.content;
+              // Append each chunk to the agent message
+              setMessages((prev) =>
+                prev.map((msg) =>
+                  msg.id === agentId
+                    ? { ...msg, content: accumulatedContent }
+                    : msg,
+                ),
+              );
+            } else if (event.type === "complete") {
+              finalResult = event.response;
+
+              // Finalize with the formatted response from the composer
+              setMessages((prev) =>
+                prev.map((msg) =>
+                  msg.id === agentId
+                    ? { ...msg, content: event.response.response }
+                    : msg,
+                ),
+              );
+
+              // Save for Developer Overlay
+              setLastResponse(event.response);
+            } else if (event.type === "error") {
+              // Append the error to the agent message
+              setMessages((prev) =>
+                prev.map((msg) =>
+                  msg.id === agentId
+                    ? { ...msg, content: msg.content + `\n\nError: ${event.message}` }
+                    : msg,
+                ),
+              );
+            }
+          } catch {
+            // Skip malformed JSON
+          }
+        }
+      }
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : "Reasoning failed";
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === agentId
+            ? { ...msg, content: msg.content + `\n\nError: ${errorMsg}` }
+            : msg,
+        ),
+      );
+    }
 
     setIsThinking(false);
     setPrompt("");

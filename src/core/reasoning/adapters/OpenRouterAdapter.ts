@@ -51,7 +51,7 @@ export class OpenRouterAdapter implements ReasoningAdapter {
   private title: string;
 
   constructor(apiKey?: string) {
-    this.apiKey = apiKey ?? process.env.OPENROUTER_API_KEY ?? "";
+    this.apiKey = apiKey ?? process.env.OPENROUTER_API_KEY ?? process.env.OpenrouterAPI ?? "";
     this.defaultModel = process.env.OPENROUTER_MODEL ?? "openai/gpt-4o";
     this.referer = process.env.OPENROUTER_REFERER ?? "https://spyral-os.vercel.app";
     this.title = process.env.OPENROUTER_TITLE ?? "SPYRAL OS";

@@ -252,7 +252,7 @@ const MOCK_MODELS: ModelConfig[] = [
  * Priority: OpenRouter → AIMLAPI → Ollama → OpenAI → Claude → Gemini → DeepSeek → Mock
  */
 export function getAvailableProviders(): ProviderConfig[] {
-  const hasOpenRouter = !!process.env.OPENROUTER_API_KEY;
+  const hasOpenRouter = !!process.env.OPENROUTER_API_KEY || !!process.env.OpenrouterAPI;
   const hasAIMLAPI = !!process.env.AIMLAPI_API_KEY;
   const hasOpenAI = !!process.env.OPENAI_API_KEY;
   const hasAnthropic = !!process.env.ANTHROPIC_API_KEY;
