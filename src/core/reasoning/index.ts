@@ -63,15 +63,15 @@ export { OpenRouterAdapter } from "./adapters/OpenRouterAdapter";
  * Initialize the reasoning system with all available adapters.
  * Call once at app startup.
  * Each adapter checks its own API key availability.
- * Priority: OpenRouter → Ollama → AIMLAPI → OpenAI → Claude → Gemini → DeepSeek → Mock
+ * Priority: Gemini → OpenRouter → Ollama → AIMLAPI → OpenAI → Claude → DeepSeek → Mock
  */
 export function initReasoningSystem(): void {
+  registerAdapter(new GeminiAdapter());
   registerAdapter(new OpenRouterAdapter());
   registerAdapter(new OllamaAdapter());
   registerAdapter(new AIMLAdapter());
   registerAdapter(new MockAdapter());
   registerAdapter(new OpenAIAdapter());
   registerAdapter(new ClaudeAdapter());
-  registerAdapter(new GeminiAdapter());
   registerAdapter(new DeepSeekAdapter());
 }

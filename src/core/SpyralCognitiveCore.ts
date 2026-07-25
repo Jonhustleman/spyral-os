@@ -612,14 +612,41 @@ class SpyralCognitiveCoreImpl {
 
   /**
    * Format an error from the reasoning system.
+   * Uses the error code from the adapter to provide a classified message.
+   * Never displays internal diagnostics or setup instructions.
    */
   private formatError(
     input: ThinkInput,
     pkg: ReasoningPackage,
     result: ReasoningResult,
   ): string {
-    // User-friendly error — NO developer output, NO setup instructions, NO internal details
-    return "I'm having trouble reaching my reasoning service right now. Please try again in a moment.";
+    const code = result.error?.code ?? "UNKNOWN_ERROR";
+
+    // Map error codes to user-friendly messages
+    switch (code) {
+      case "API_KEY_MISSING":
+      case "AUTHENTICATION_ERROR":
+        return "Authentication failed. Please check your API key configuration.";
+      case "RATE_LIMIT_EXCEEDED":
+        return "Too many requests. Please wait a moment and try again.";
+      case "QUOTA_EXCEEDED":
+      case "API_ERROR_402":
+        return "API quota exceeded. Please check your billing settings.";
+      case "TIMEOUT":
+      case "NETWORK_ERROR":
+      case "STREAM_NETWORK_ERROR":
+      case "STREAM_ERROR":
+        return "Connection issue. Please check your network and try again.";
+      case "PROVIDER_ERROR":
+      case "PROVIDER_UNAVAILABLE":
+        return "The AI service is temporarily unavailable. Please try again in a moment.";
+      case "INVALID_REQUEST":
+        return "The request was invalid. Please try rephrasing your input.";
+      case "ALL_PROVIDERS_FAILED":
+        return "Unable to process your request at this time. Please try again.";
+      default:
+        return "Something went wrong. Please try again.";
+    }
   }
 
   // ─── UTILITY ─────────────────────────────────────────────────────────

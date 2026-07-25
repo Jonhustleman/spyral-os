@@ -107,9 +107,9 @@ const OPENROUTER_MODELS: ModelConfig[] = [
 
 export const AGENT_PROFILES: Record<AgentType, ModelProfile> = {
   research: {
-    preferredProvider: "openrouter",
-    preferredModel: "openai/gpt-4o",
-    fallbackProvider: "ollama",
+    preferredProvider: "gemini",
+    preferredModel: "gemini-2.5-flash",
+    fallbackProvider: "openrouter",
     temperature: 0.4,
     maxOutputTokens: 1000,
     reasoningEffort: "high",
@@ -128,9 +128,9 @@ Rules:
 - When you ask a question, it should open a new dimension, not fill a form field.`,
   },
   content: {
-    preferredProvider: "openrouter",
-    preferredModel: "openai/gpt-4o",
-    fallbackProvider: "ollama",
+    preferredProvider: "gemini",
+    preferredModel: "gemini-2.5-flash",
+    fallbackProvider: "openrouter",
     temperature: 0.8,
     maxOutputTokens: 1000,
     creativity: "high",
@@ -148,9 +148,9 @@ Rules:
 - Begin thinking. The strategy emerges from the vision.`,
   },
   consultant: {
-    preferredProvider: "openrouter",
-    preferredModel: "openai/gpt-4o",
-    fallbackProvider: "ollama",
+    preferredProvider: "gemini",
+    preferredModel: "gemini-2.5-flash",
+    fallbackProvider: "openrouter",
     temperature: 0.3,
     maxOutputTokens: 1000,
     reasoningEffort: "high",
@@ -169,9 +169,9 @@ Rules:
 - Think out loud, but concisely.`,
   },
   navigation: {
-    preferredProvider: "openrouter",
-    preferredModel: "openai/gpt-4o",
-    fallbackProvider: "ollama",
+    preferredProvider: "gemini",
+    preferredModel: "gemini-2.5-flash",
+    fallbackProvider: "openrouter",
     temperature: 0.4,
     maxOutputTokens: 1000,
     reasoningEffort: "high",
@@ -189,9 +189,9 @@ Rules:
 - Focus on trajectories, transformations, and decision points.`,
   },
   command: {
-    preferredProvider: "openrouter",
-    preferredModel: "openai/gpt-4o",
-    fallbackProvider: "ollama",
+    preferredProvider: "gemini",
+    preferredModel: "gemini-2.5-flash",
+    fallbackProvider: "openrouter",
     temperature: 0.2,
     maxOutputTokens: 1000,
     reasoningEffort: "low",
@@ -225,6 +225,7 @@ const CLAUDE_MODELS: ModelConfig[] = [
 
 const GEMINI_MODELS: ModelConfig[] = [
   { id: "gemini-2.5-pro", label: "Gemini 2.5 Pro", temperature: 0.4, maxOutputTokens: 8192 },
+  { id: "gemini-2.5-flash", label: "Gemini 2.5 Flash", temperature: 0.5, maxOutputTokens: 4096 },
   { id: "gemini-2.0-flash", label: "Gemini 2.0 Flash", temperature: 0.4, maxOutputTokens: 4096 },
 ];
 
@@ -245,22 +246,24 @@ const MOCK_MODELS: ModelConfig[] = [
 /**
  * Get all available providers.
  * Checks for API keys and returns availability status.
- */
-/**
- * Get all available providers.
- * Checks for API keys and returns availability status.
- * Priority: OpenRouter → AIMLAPI → Ollama → OpenAI → Claude → Gemini → DeepSeek → Mock
+ * Priority: Gemini → OpenRouter → AIMLAPI → Ollama → OpenAI → Claude → DeepSeek → Mock
  */
 export function getAvailableProviders(): ProviderConfig[] {
+  const hasGemini = !!process.env.GEMINI_API_KEY;
   const hasOpenRouter = !!process.env.OPENROUTER_API_KEY || !!process.env.OpenrouterAPI;
   const hasAIMLAPI = !!process.env.AIMLAPI_API_KEY;
   const hasOpenAI = !!process.env.OPENAI_API_KEY;
   const hasAnthropic = !!process.env.ANTHROPIC_API_KEY;
-  const hasGemini = !!process.env.GEMINI_API_KEY;
   const hasDeepSeek = !!process.env.DEEPSEEK_API_KEY;
   const hasLlama = false; // Future: Local LLM detection
 
   return [
+    {
+      type: "gemini",
+      label: "Google Gemini",
+      available: hasGemini,
+      models: GEMINI_MODELS,
+    },
     {
       type: "openrouter",
       label: "OpenRouter (Live)",
