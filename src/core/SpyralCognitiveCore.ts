@@ -195,14 +195,14 @@ class SpyralCognitiveCoreImpl {
 
     // ─── RECORD START ───────────────────────────────────────────────
     const startTime = Date.now();
-    ExperienceRecorder.recordEvent("thinking_started", {
+    try { ExperienceRecorder.recordEvent("thinking_started", {
       agentType: input.agentType,
       page: input.agentType,
       metadata: {
         inputLength: input.input.length,
         genomeVersion: GenomeBootloader.getVersion(),
       },
-    });
+    }); } catch (_e) { /* server-safe: recorder unavailable */ }
 
     // ─── STEP 1: BUILD WORKING MIND (RC6 — RAM, not CPU) ─────────────
     // WorkingMind organizes reality before the LLM reasons over it.
@@ -286,7 +286,7 @@ class SpyralCognitiveCoreImpl {
     this.updateConversation(input);
 
     // ─── RECORD COMPLETION ────────────────────────────────────────────
-    ExperienceRecorder.recordEvent("thinking_completed", {
+    try { ExperienceRecorder.recordEvent("thinking_completed", {
       agentType: input.agentType,
       page: input.agentType,
       duration: Date.now() - startTime,
@@ -296,7 +296,7 @@ class SpyralCognitiveCoreImpl {
         provider: reasoningResult.provider,
         tokens: reasoningResult.usage.totalTokens,
       },
-    });
+    }); } catch (_e) { /* server-safe: recorder unavailable */ }
 
     // ─── CLEAR GENOME CONTEXT ─────────────────────────────────────────
     SpyralCognitiveCoreImpl._genomeContext = null;
@@ -346,14 +346,14 @@ class SpyralCognitiveCoreImpl {
 
     // ─── RECORD START ───────────────────────────────────────────────
     const startTime = Date.now();
-    ExperienceRecorder.recordEvent("thinking_started", {
+    try { ExperienceRecorder.recordEvent("thinking_started", {
       agentType: input.agentType,
       page: input.agentType,
       metadata: {
         inputLength: input.input.length,
         genomeVersion: GenomeBootloader.getVersion(),
       },
-    });
+    }); } catch (_e) { /* server-safe: recorder unavailable */ }
 
     // ─── STEP 1: BUILD WORKING MIND ─────────────────────────────────
     let reasoningPackage: ReasoningPackage;
@@ -454,7 +454,7 @@ class SpyralCognitiveCoreImpl {
     this.updateConversation(input);
 
     // ─── RECORD COMPLETION ────────────────────────────────────────────
-    ExperienceRecorder.recordEvent("thinking_completed", {
+    try { ExperienceRecorder.recordEvent("thinking_completed", {
       agentType: input.agentType,
       page: input.agentType,
       duration: Date.now() - startTime,
@@ -464,7 +464,7 @@ class SpyralCognitiveCoreImpl {
         provider: finalResult.provider,
         tokens: finalResult.usage.totalTokens,
       },
-    });
+    }); } catch (_e) { /* server-safe: recorder unavailable */ }
 
     // ─── CLEAR GENOME CONTEXT ─────────────────────────────────────────
     SpyralCognitiveCoreImpl._genomeContext = null;
