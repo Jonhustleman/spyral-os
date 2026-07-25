@@ -111,7 +111,7 @@ export const AGENT_PROFILES: Record<AgentType, ModelProfile> = {
     preferredModel: "openai/gpt-4o",
     fallbackProvider: "ollama",
     temperature: 0.4,
-    maxOutputTokens: 3500,
+    maxOutputTokens: 2048,
     reasoningEffort: "high",
     chainOfThought: true,
     systemPromptExtra:
@@ -132,7 +132,7 @@ Rules:
     preferredModel: "openai/gpt-4o",
     fallbackProvider: "ollama",
     temperature: 0.8,
-    maxOutputTokens: 3500,
+    maxOutputTokens: 2048,
     creativity: "high",
     reasoningEffort: "medium",
     systemPromptExtra:
@@ -152,7 +152,7 @@ Rules:
     preferredModel: "openai/gpt-4o",
     fallbackProvider: "ollama",
     temperature: 0.3,
-    maxOutputTokens: 3500,
+    maxOutputTokens: 2048,
     reasoningEffort: "high",
     chainOfThought: true,
     systemPromptExtra:
@@ -173,7 +173,7 @@ Rules:
     preferredModel: "openai/gpt-4o",
     fallbackProvider: "ollama",
     temperature: 0.4,
-    maxOutputTokens: 3500,
+    maxOutputTokens: 2048,
     reasoningEffort: "high",
     systemPromptExtra:
       `You are a Mission Architect.
