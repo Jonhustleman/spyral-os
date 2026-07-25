@@ -126,6 +126,11 @@ class AIGatewayImpl {
     lastError = primaryResult;
     usedFallback = true;
 
+    // If primary failed with auth error, don't retry — just return the classified error
+    if (lastError?.error?.code === "AUTHENTICATION_ERROR" || lastError?.error?.code === "API_KEY_MISSING") {
+      return this.toErrorResponse(lastError, null, usedFallback);
+    }
+
     // The ReasoningRouter already handles fallback via resolveProvider,
     // but if it failed, we retry with a different approach:
     // Try the non-streaming path which might use different provider

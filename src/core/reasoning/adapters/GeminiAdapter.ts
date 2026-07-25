@@ -352,6 +352,17 @@ export class GeminiAdapter implements ReasoningAdapter {
 
     switch (status) {
       case 400:
+        // Gemini returns 400 for invalid API keys — detect and reclassify
+        if (/api.?key|invalid key|authentication/i.test(apiMessage)) {
+          return {
+            ...base,
+            error: {
+              code: "AUTHENTICATION_ERROR",
+              message: apiMessage,
+              recoverable: true,
+            },
+          };
+        }
         return {
           ...base,
           error: {

@@ -14,7 +14,7 @@ import type { ReasoningPackage } from "@/core/mind";
 import type { ReasoningResult } from "./ReasoningResult";
 import type { ReasoningAdapter } from "./ReasoningAdapter";
 import type { AgentType } from "../SpyralCognitiveCore";
-import { resolveProvider, type ModelProfile } from "./ReasoningProvider";
+import { resolveProvider, getAvailableProviders, AGENT_PROFILES, type ModelProfile } from "./ReasoningProvider";
 
 // ─── Adapter Registry ────────────────────────────────────────────────────
 
@@ -66,19 +66,139 @@ export async function* routeReasoningStream(
 ): AsyncGenerator<string, ReasoningResult, void> {
   const startTime = Date.now();
 
-  // 1. Resolve which provider + model to use
-  const { provider, model, profile } = resolveProvider(agentType);
+  // 1. Resolve which providers to try (ordered: preferred → fallback → any available)
+  const allProviders = getAvailableProviders();
+  const profile = AGENT_PROFILES[agentType];
 
-  // Developer logging
-  if (process.env.NODE_ENV === "development" || process.env.DEV_MODE === "true") {
-    console.log(`[ReasoningRouter] Streaming — Provider: ${provider}, Model: ${model}`);
+  // Build ordered list of providers to try
+  const providerOrder: string[] = [];
+  if (profile.preferredProvider) providerOrder.push(profile.preferredProvider);
+  if (profile.fallbackProvider && profile.fallbackProvider !== profile.preferredProvider) {
+    providerOrder.push(profile.fallbackProvider);
+  }
+  // Add any other available providers that aren't already in the list
+  for (const p of allProviders) {
+    if (p.available && !providerOrder.includes(p.type)) {
+      providerOrder.push(p.type);
+    }
   }
 
-  // 2. Find the adapter
-  const adapter = _adapters.get(provider);
+  let lastError: ReasoningResult | null = null;
 
-  if (!adapter || !adapter.isAvailable()) {
-    return {
+  for (const providerType of providerOrder) {
+    // Find the adapter
+    const adapter = _adapters.get(providerType);
+    if (!adapter || !adapter.isAvailable()) continue;
+
+    // Determine model for this provider
+    let modelToUse = profile.preferredModel;
+    const providerConfig = allProviders.find(p => p.type === providerType);
+    if (providerConfig && providerConfig.models.length > 0) {
+      modelToUse = providerConfig.models[0]?.id ?? modelToUse;
+    }
+
+    if (process.env.NODE_ENV === "development" || process.env.DEV_MODE === "true") {
+      console.log(`[ReasoningRouter] Streaming — Trying Provider: ${providerType}, Model: ${modelToUse}`);
+    }
+
+    // Try streaming first, fall back to non-streaming
+    if (adapter.streamReason) {
+      try {
+        const gen = adapter.streamReason(pkg, profile, {
+          model: options?.model ?? modelToUse,
+          maxTokens: options?.maxTokens ?? profile.maxOutputTokens,
+          temperature: options?.temperature ?? profile.temperature,
+          abortSignal: options?.abortSignal,
+        });
+
+        let result: IteratorResult<string, ReasoningResult>;
+        while (!(result = await gen.next()).done) {
+          yield result.value;
+        }
+
+        // Stream completed — return the final ReasoningResult
+        const finalResult = result.value;
+        if (!finalResult.reasoning) {
+          finalResult.reasoning = { durationMs: Date.now() - startTime };
+        }
+
+        // Check if the result has an auth/validation error — if so, try next provider
+        if (finalResult.error) {
+          const authCodes = ["AUTHENTICATION_ERROR", "API_KEY_MISSING", "INVALID_REQUEST", "API_ERROR_400"];
+          if (authCodes.includes(finalResult.error.code)) {
+            lastError = finalResult;
+            if (process.env.NODE_ENV === "development" || process.env.DEV_MODE === "true") {
+              console.log(`[ReasoningRouter] ${providerType} failed with ${finalResult.error.code}, trying next provider...`);
+            }
+            continue; // Try next provider
+          }
+        }
+
+        return finalResult;
+      } catch (err: any) {
+        if (process.env.NODE_ENV === "development" || process.env.DEV_MODE === "true") {
+          console.error(`[ReasoningRouter] Stream failed for ${providerType}, falling back to non-streaming:`, err);
+        }
+        // Fall through to fallback
+      }
+    }
+
+    // Fallback: non-streaming
+    if (process.env.NODE_ENV === "development" || process.env.DEV_MODE === "true") {
+      console.log(`[ReasoningRouter] Using non-streaming fallback for ${providerType}`);
+    }
+
+    try {
+      const result = await adapter.reason(pkg, profile, {
+        model: options?.model ?? modelToUse,
+        maxTokens: options?.maxTokens ?? profile.maxOutputTokens,
+        temperature: options?.temperature ?? profile.temperature,
+        abortSignal: options?.abortSignal,
+      });
+
+      if (!result.reasoning) {
+        result.reasoning = { durationMs: Date.now() - startTime };
+      }
+
+      // Check for auth errors — try next provider
+      if (result.error) {
+        const authCodes = ["AUTHENTICATION_ERROR", "API_KEY_MISSING", "INVALID_REQUEST", "API_ERROR_400"];
+        if (authCodes.includes(result.error.code)) {
+          lastError = result;
+          if (process.env.NODE_ENV === "development" || process.env.DEV_MODE === "true") {
+            console.log(`[ReasoningRouter] ${providerType} non-streaming failed with ${result.error.code}, trying next provider...`);
+          }
+          continue; // Try next provider
+        }
+      }
+
+      // Yield the full content as a single chunk
+      if (result.content) {
+        yield result.content;
+      }
+
+      return result;
+    } catch (err: any) {
+      lastError = {
+        content: "",
+        model: modelToUse,
+        provider: providerType,
+        usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+        reasoning: { durationMs: Date.now() - startTime },
+        cached: false,
+        error: {
+          code: "REASONING_FAILED",
+          message: err?.message ?? "Reasoning failed with unknown error",
+          recoverable: true,
+        },
+      };
+      continue; // Try next provider
+    }
+  }
+
+  // All providers failed — return the last error
+  if (!lastError) {
+    lastError = {
       content: "",
       model: "none",
       provider: "none",
@@ -86,80 +206,14 @@ export async function* routeReasoningStream(
       reasoning: { durationMs: Date.now() - startTime },
       cached: false,
       error: {
-        code: "PROVIDER_UNAVAILABLE",
-        message: `No reasoning provider available for ${agentType}. Please configure an API key.`,
+        code: "ALL_PROVIDERS_FAILED",
+        message: "No reasoning provider available. Please configure an API key.",
         recoverable: true,
       },
     };
   }
 
-  // 3. Try streaming first, fall back to non-streaming
-  if (adapter.streamReason) {
-    try {
-      const gen = adapter.streamReason(pkg, profile, {
-        model: options?.model ?? model,
-        maxTokens: options?.maxTokens ?? profile.maxOutputTokens,
-        temperature: options?.temperature ?? profile.temperature,
-        abortSignal: options?.abortSignal,
-      });
-
-      let result: IteratorResult<string, ReasoningResult>;
-      while (!(result = await gen.next()).done) {
-        yield result.value;
-      }
-
-      // Stream completed — return the final ReasoningResult
-      const finalResult = result.value;
-      if (!finalResult.reasoning) {
-        finalResult.reasoning = { durationMs: Date.now() - startTime };
-      }
-      return finalResult;
-    } catch (err: any) {
-      if (process.env.NODE_ENV === "development" || process.env.DEV_MODE === "true") {
-        console.error(`[ReasoningRouter] Stream failed, falling back to non-streaming:`, err);
-      }
-      // Fall through to fallback
-    }
-  }
-
-  // 4. Fallback: non-streaming
-  if (process.env.NODE_ENV === "development" || process.env.DEV_MODE === "true") {
-    console.log(`[ReasoningRouter] Using non-streaming fallback for ${provider}`);
-  }
-
-  try {
-    const result = await adapter.reason(pkg, profile, {
-      model: options?.model ?? model,
-      maxTokens: options?.maxTokens ?? profile.maxOutputTokens,
-      temperature: options?.temperature ?? profile.temperature,
-      abortSignal: options?.abortSignal,
-    });
-
-    if (!result.reasoning) {
-      result.reasoning = { durationMs: Date.now() - startTime };
-    }
-
-    // Yield the full content as a single chunk
-    if (result.content) {
-      yield result.content;
-    }
-
-    return result;
-  } catch (err: any) {
-    return {
-      content: "",
-      model,
-      provider,
-      usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
-      reasoning: { durationMs: Date.now() - startTime },
-      cached: false,
-      error: {
-        code: "REASONING_FAILED",
-        message: err?.message ?? "Reasoning failed with unknown error",
-        recoverable: true,
-      },
-    };
-  }
+  return lastError;
 }
 
 /**
