@@ -22,8 +22,33 @@ async function api<T>(url: string, options?: RequestInit): Promise<T> {
     headers: { "Content-Type": "application/json" },
     ...options,
   });
-  const data = await res.json();
-  return data as T;
+
+  // Check if response has JSON content type
+  const contentType = res.headers.get("content-type") || "";
+  if (!contentType.includes("application/json")) {
+    // Try to parse as JSON anyway (some servers don't set content-type),
+    // but fall back gracefully
+    try {
+      const text = await res.text();
+      return JSON.parse(text) as T;
+    } catch {
+      return {
+        success: false,
+        error: `Server returned ${res.status}. Please try again.`,
+      } as unknown as T;
+    }
+  }
+
+  try {
+    const data = await res.json();
+    return data as T;
+  } catch (err) {
+    // JSON parsing failed — likely a non-JSON error page
+    return {
+      success: false,
+      error: `Server error (${res.status}). Please try again.`,
+    } as unknown as T;
+  }
 }
 
 class ApiAuthServiceImpl implements AuthService {

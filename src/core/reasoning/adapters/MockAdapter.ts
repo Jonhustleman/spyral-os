@@ -37,80 +37,67 @@ export class MockAdapter implements ReasoningAdapter {
     // Simulate a small delay like a real LLM
     await new Promise(resolve => setTimeout(resolve, 300));
 
-    const { mind, identity } = pkg;
-
-    // Build a simple mock response based on the WorkingMind state
-    const entityCount = mind.entities.length;
-    const relCount = mind.relationships.length;
-    const hasHypotheses = mind.hypotheses.length > 0;
-    const hasSimulations = mind.simulations.length > 0;
-
-    const response = buildMockResponse(identity.name, mind.goal, entityCount, relCount, hasHypotheses, hasSimulations);
+    // User-friendly message — NO developer output, NO setup instructions
+    const content = "I'm having trouble reaching my reasoning service right now. Please try again in a moment.";
 
     return {
-      content: response,
+      content,
       model: "mock",
       provider: "mock",
       usage: {
-        inputTokens: 150 + entityCount * 20 + relCount * 15,
-        outputTokens: response.split(/\s+/).length,
-        totalTokens: 200 + entityCount * 20 + relCount * 15 + response.split(/\s+/).length,
+        inputTokens: 0,
+        outputTokens: content.split(/\s+/).length,
+        totalTokens: content.split(/\s+/).length,
       },
       cached: false,
-      reasoning: {
-        durationMs: 300,
-        trace: "Mock reasoner — no actual reasoning performed",
+      error: {
+        code: "PROVIDER_UNAVAILABLE",
+        message: "No reasoning provider is available",
+        recoverable: true,
       },
     };
   }
-}
 
-function buildMockResponse(
-  name: string,
-  goal: string,
-  entityCount: number,
-  relCount: number,
-  hasHypotheses: boolean,
-  hasSimulations: boolean,
-): string {
-  const lines: string[] = [];
+  /**
+   * streamReason — Dev mock streaming.
+   * Yields the mock message character by character to simulate streaming.
+   */
+  async *streamReason(
+    pkg: ReasoningPackage,
+    profile: ModelProfile,
+    options?: {
+      model?: string;
+      maxTokens?: number;
+      temperature?: number;
+      abortSignal?: AbortSignal;
+    },
+  ): AsyncGenerator<string, ReasoningResult, void> {
+    const content = "I'm having trouble reaching my reasoning service right now. Please try again in a moment.";
 
-  lines.push(`*This is a mock response from ${name}. No LLM is connected.*`);
-  lines.push(``);
-  lines.push(`I've received your input and prepared the following understanding:`);
-  lines.push(``);
+    // Yield character by character to simulate streaming
+    for (let i = 0; i < content.length; i++) {
+      // Check for abort
+      if (options?.abortSignal?.aborted) break;
+      yield content[i];
+      // Small delay to simulate real streaming
+      await new Promise(resolve => setTimeout(resolve, 10));
+    }
 
-  if (goal) {
-    lines.push(`**Goal**: ${goal}`);
-    lines.push(``);
+    return {
+      content,
+      model: "mock",
+      provider: "mock",
+      usage: {
+        inputTokens: 0,
+        outputTokens: content.split(/\s+/).length,
+        totalTokens: content.split(/\s+/).length,
+      },
+      cached: false,
+      error: {
+        code: "PROVIDER_UNAVAILABLE",
+        message: "No reasoning provider is available",
+        recoverable: true,
+      },
+    };
   }
-
-  if (entityCount > 0) {
-    lines.push(`I identified ${entityCount} key concepts in your input.`);
-  }
-
-  if (relCount > 0) {
-    lines.push(`I found ${relCount} relationships between these concepts.`);
-  }
-
-  if (hasHypotheses) {
-    lines.push(`I've prepared some hypotheses to explore.`);
-  }
-
-  if (hasSimulations) {
-    lines.push(`I've outlined some what-if scenarios worth considering.`);
-  }
-
-  lines.push(``);
-  lines.push(`---`);
-  lines.push(`**Reasoning service temporarily unavailable.**`);
-  lines.push(``);
-  lines.push(`To enable real reasoning:`);
-  lines.push(`1. Add \`OPENAI_API_KEY\` to your \`.env.local\` file`);
-  lines.push(`2. Restart the development server`);
-  lines.push(`3. SPYRAL will automatically route to the best available model`);
-  lines.push(``);
-  lines.push(`In the meantime, I can still help with basic queries using the WorkingMind system.`);
-
-  return lines.join("\n");
 }

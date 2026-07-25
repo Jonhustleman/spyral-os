@@ -16,7 +16,27 @@ import { cn } from "@/lib/utils";
 import { DeveloperMode } from "@/components/dev/DeveloperMode";
 
 export default function SettingsPage() {
-  const [showDeveloper, setShowDeveloper] = useState(false);
+  const [showDeveloper, setShowDeveloper] = useState(() => {
+    // Read initial state from localStorage
+    if (typeof window !== "undefined") {
+      try {
+        return localStorage.getItem("spyral_dev_mode") === "true";
+      } catch {
+        // localStorage unavailable
+      }
+    }
+    return false;
+  });
+
+  const toggleDeveloper = () => {
+    const next = !showDeveloper;
+    setShowDeveloper(next);
+    try {
+      localStorage.setItem("spyral_dev_mode", next ? "true" : "false");
+    } catch {
+      // localStorage unavailable
+    }
+  };
 
   return (
     <div className="flex-1 px-6 py-8 max-w-3xl mx-auto w-full">
@@ -50,7 +70,7 @@ export default function SettingsPage() {
         <div className="space-y-4">
           <div
             className="bg-zinc-900 rounded-lg border border-zinc-800 p-4 cursor-pointer hover:border-zinc-700 transition-colors"
-            onClick={() => setShowDeveloper(!showDeveloper)}
+            onClick={toggleDeveloper}
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">

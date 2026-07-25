@@ -14,7 +14,7 @@
  */
 
 import { registerAdapter } from "./ReasoningRouter";
-export { getAdapter, getAllAdapters, routeReasoning } from "./ReasoningRouter";
+export { getAdapter, getAllAdapters, routeReasoning, routeReasoningStream } from "./ReasoningRouter";
 
 export type { ReasoningResult } from "./ReasoningResult";
 
@@ -50,12 +50,25 @@ export { GeminiAdapter } from "./adapters/GeminiAdapter";
 import { DeepSeekAdapter } from "./adapters/DeepSeekAdapter";
 export { DeepSeekAdapter } from "./adapters/DeepSeekAdapter";
 
+import { AIMLAdapter } from "./adapters/AIMLAdapter";
+export { AIMLAdapter } from "./adapters/AIMLAdapter";
+
+import { OllamaAdapter } from "./adapters/OllamaAdapter";
+export { OllamaAdapter } from "./adapters/OllamaAdapter";
+
+import { OpenRouterAdapter } from "./adapters/OpenRouterAdapter";
+export { OpenRouterAdapter } from "./adapters/OpenRouterAdapter";
+
 /**
  * Initialize the reasoning system with all available adapters.
  * Call once at app startup.
  * Each adapter checks its own API key availability.
+ * Priority: OpenRouter → Ollama → AIMLAPI → OpenAI → Claude → Gemini → DeepSeek → Mock
  */
 export function initReasoningSystem(): void {
+  registerAdapter(new OpenRouterAdapter());
+  registerAdapter(new OllamaAdapter());
+  registerAdapter(new AIMLAdapter());
   registerAdapter(new MockAdapter());
   registerAdapter(new OpenAIAdapter());
   registerAdapter(new ClaudeAdapter());

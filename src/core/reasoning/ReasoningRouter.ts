@@ -45,6 +45,124 @@ export function getAllAdapters(): ReasoningAdapter[] {
 // ─── Router ──────────────────────────────────────────────────────────────
 
 /**
+ * Route a ReasoningPackage to the best available model with streaming.
+ *
+ * Returns an AsyncGenerator that yields content strings as they arrive
+ * from the model, and returns the complete ReasoningResult when the
+ * stream ends.
+ *
+ * If the selected adapter doesn't support streaming, falls back to
+ * regular reason() and yields the full content as a single chunk.
+ */
+export async function* routeReasoningStream(
+  pkg: ReasoningPackage,
+  agentType: AgentType,
+  options?: {
+    model?: string;
+    maxTokens?: number;
+    temperature?: number;
+    abortSignal?: AbortSignal;
+  },
+): AsyncGenerator<string, ReasoningResult, void> {
+  const startTime = Date.now();
+
+  // 1. Resolve which provider + model to use
+  const { provider, model, profile } = resolveProvider(agentType);
+
+  // Developer logging
+  if (process.env.NODE_ENV === "development" || process.env.DEV_MODE === "true") {
+    console.log(`[ReasoningRouter] Streaming — Provider: ${provider}, Model: ${model}`);
+  }
+
+  // 2. Find the adapter
+  const adapter = _adapters.get(provider);
+
+  if (!adapter || !adapter.isAvailable()) {
+    return {
+      content: "",
+      model: "none",
+      provider: "none",
+      usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+      reasoning: { durationMs: Date.now() - startTime },
+      cached: false,
+      error: {
+        code: "PROVIDER_UNAVAILABLE",
+        message: `No reasoning provider available for ${agentType}. Please configure an API key.`,
+        recoverable: true,
+      },
+    };
+  }
+
+  // 3. Try streaming first, fall back to non-streaming
+  if (adapter.streamReason) {
+    try {
+      const gen = adapter.streamReason(pkg, profile, {
+        model: options?.model ?? model,
+        maxTokens: options?.maxTokens ?? profile.maxOutputTokens,
+        temperature: options?.temperature ?? profile.temperature,
+        abortSignal: options?.abortSignal,
+      });
+
+      let result: IteratorResult<string, ReasoningResult>;
+      while (!(result = await gen.next()).done) {
+        yield result.value;
+      }
+
+      // Stream completed — return the final ReasoningResult
+      const finalResult = result.value;
+      if (!finalResult.reasoning) {
+        finalResult.reasoning = { durationMs: Date.now() - startTime };
+      }
+      return finalResult;
+    } catch (err: any) {
+      if (process.env.NODE_ENV === "development" || process.env.DEV_MODE === "true") {
+        console.error(`[ReasoningRouter] Stream failed, falling back to non-streaming:`, err);
+      }
+      // Fall through to fallback
+    }
+  }
+
+  // 4. Fallback: non-streaming
+  if (process.env.NODE_ENV === "development" || process.env.DEV_MODE === "true") {
+    console.log(`[ReasoningRouter] Using non-streaming fallback for ${provider}`);
+  }
+
+  try {
+    const result = await adapter.reason(pkg, profile, {
+      model: options?.model ?? model,
+      maxTokens: options?.maxTokens ?? profile.maxOutputTokens,
+      temperature: options?.temperature ?? profile.temperature,
+      abortSignal: options?.abortSignal,
+    });
+
+    if (!result.reasoning) {
+      result.reasoning = { durationMs: Date.now() - startTime };
+    }
+
+    // Yield the full content as a single chunk
+    if (result.content) {
+      yield result.content;
+    }
+
+    return result;
+  } catch (err: any) {
+    return {
+      content: "",
+      model,
+      provider,
+      usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+      reasoning: { durationMs: Date.now() - startTime },
+      cached: false,
+      error: {
+        code: "REASONING_FAILED",
+        message: err?.message ?? "Reasoning failed with unknown error",
+        recoverable: true,
+      },
+    };
+  }
+}
+
+/**
  * Route a ReasoningPackage to the best available model.
  *
  * Flow:
@@ -69,6 +187,13 @@ export async function routeReasoning(
 
   // 1. Resolve which provider + model to use
   const { provider, model, profile } = resolveProvider(agentType);
+
+  // Developer logging — shows which provider was selected
+  if (process.env.NODE_ENV === "development" || process.env.DEV_MODE === "true") {
+    console.log(`[ReasoningRouter] Provider Selected: ${provider}`);
+    console.log(`[ReasoningRouter] Model: ${model}`);
+    console.log(`[ReasoningRouter] Agent Type: ${agentType}`);
+  }
 
   // 2. Find the adapter
   const adapter = _adapters.get(provider);

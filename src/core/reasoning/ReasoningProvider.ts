@@ -10,6 +10,9 @@ import type { AgentType } from "../SpyralCognitiveCore";
 // ─── Provider Types ──────────────────────────────────────────────────────
 
 export type ProviderType =
+  | "openrouter"
+  | "aimlapi"
+  | "ollama"
   | "openai"
   | "claude"
   | "gemini"
@@ -69,63 +72,145 @@ export interface ModelProfile {
 
 // ─── Profile Definitions ─────────────────────────────────────────────────
 
+// ─── Available Models by Provider ───────────────────────────────────────
+
+const AIMLAPI_MODELS: ModelConfig[] = [
+  { id: "openai/gpt-5-5", label: "GPT-5.5 (OpenAI)", temperature: 0.4, maxOutputTokens: 8192, supportsReasoning: true, reasoningEffort: "high" },
+  { id: "openai/gpt-4o", label: "GPT-4o (OpenAI)", temperature: 0.4, maxOutputTokens: 4096 },
+  { id: "deepseek/deepseek-r1", label: "DeepSeek R1", temperature: 0.5, maxOutputTokens: 4096, supportsReasoning: true, reasoningEffort: "high" },
+  { id: "deepseek/deepseek-v3", label: "DeepSeek V3", temperature: 0.7, maxOutputTokens: 8192 },
+  { id: "google/gemini-2.5-pro", label: "Gemini 2.5 Pro", temperature: 0.4, maxOutputTokens: 8192, supportsReasoning: true },
+  { id: "anthropic/claude-4-sonnet", label: "Claude 4 Sonnet", temperature: 0.4, maxOutputTokens: 8192 },
+  { id: "meta/llama-3.3", label: "Llama 3.3", temperature: 0.4, maxOutputTokens: 4096 },
+  { id: "qwen/qwen3", label: "Qwen 3", temperature: 0.4, maxOutputTokens: 4096 },
+  { id: "mistral-large", label: "Mistral Large", temperature: 0.4, maxOutputTokens: 4096 },
+];
+
+const OLLAMA_MODELS: ModelConfig[] = [
+  { id: "llama3.2:3b", label: "Llama 3.2 (3B) - Local", temperature: 0.4, maxOutputTokens: 4096 },
+  { id: "llama3.2:1b", label: "Llama 3.2 (1B) - Local", temperature: 0.4, maxOutputTokens: 2048 },
+  { id: "qwen2.5:7b", label: "Qwen 2.5 (7B) - Local", temperature: 0.4, maxOutputTokens: 4096 },
+  { id: "qwen2.5:1.5b", label: "Qwen 2.5 (1.5B) - Local", temperature: 0.4, maxOutputTokens: 2048 },
+  { id: "deepseek-r1:7b", label: "DeepSeek R1 (7B) - Local", temperature: 0.5, maxOutputTokens: 4096, supportsReasoning: true },
+];
+
+const OPENROUTER_MODELS: ModelConfig[] = [
+  { id: "openai/gpt-4o", label: "OpenAI GPT-4o", temperature: 0.4, maxOutputTokens: 3500, supportsReasoning: true },
+  { id: "openai/gpt-4.1", label: "OpenAI GPT-4.1", temperature: 0.4, maxOutputTokens: 3500, supportsReasoning: true },
+  { id: "anthropic/claude-4-sonnet", label: "Claude 4 Sonnet", temperature: 0.4, maxOutputTokens: 3500 },
+  { id: "google/gemini-2.5-pro", label: "Gemini 2.5 Pro", temperature: 0.4, maxOutputTokens: 3500 },
+  { id: "deepseek/deepseek-r1", label: "DeepSeek R1", temperature: 0.5, maxOutputTokens: 2000, supportsReasoning: true, reasoningEffort: "high" },
+  { id: "deepseek/deepseek-v3", label: "DeepSeek V3", temperature: 0.7, maxOutputTokens: 3500 },
+];
+
+// ─── Agent Profiles ─────────────────────────────────────────────────────
+
 export const AGENT_PROFILES: Record<AgentType, ModelProfile> = {
   research: {
-    preferredProvider: "openai",
-    preferredModel: "gpt-5",
-    fallbackProvider: "claude",
+    preferredProvider: "openrouter",
+    preferredModel: "openai/gpt-4o",
+    fallbackProvider: "ollama",
     temperature: 0.4,
-    maxOutputTokens: 4096,
+    maxOutputTokens: 3500,
     reasoningEffort: "high",
     chainOfThought: true,
     systemPromptExtra:
-      "You are a research partner. Explore ideas deeply. Challenge assumptions. Make cross-domain connections. Never interview — collaborate. The best insights come from pushing past the obvious.",
+      `You are an Investigative Scientist.
+
+Your purpose is to explore ideas, challenge assumptions, and build understanding forward.
+
+Rules:
+- Contribute before questioning.
+- Build the investigation forward with each response.
+- Explore ideas deeply. Make cross-domain connections.
+- Challenge assumptions — including the user's and your own.
+- Never interview the user. Questions are rare and valuable.
+- When you ask a question, it should open a new dimension, not fill a form field.`,
   },
   content: {
-    preferredProvider: "openai",
-    preferredModel: "gpt-5",
-    fallbackProvider: "gemini",
+    preferredProvider: "openrouter",
+    preferredModel: "openai/gpt-4o",
+    fallbackProvider: "ollama",
     temperature: 0.8,
-    maxOutputTokens: 8192,
+    maxOutputTokens: 3500,
     creativity: "high",
     reasoningEffort: "medium",
     systemPromptExtra:
-      "You are a creative director. Shape raw ideas into narratives. Think in metaphors, imagery, and structure. Guide the user's creative expression without writing for them. Focus on what makes stories memorable.",
+      `You are a Creative Director.
+
+Your purpose is to discover emotional truth and shape raw ideas into narratives.
+
+Rules:
+- Discover emotional truth before structure.
+- Imagine first. Build strategy after vision.
+- Think like someone pitching a campaign — every response should feel like a creative spark.
+- Never begin with \"Target audience?\" or similar questionnaires.
+- Begin thinking. The strategy emerges from the vision.`,
   },
   consultant: {
-    preferredProvider: "openai",
-    preferredModel: "gpt-5",
-    fallbackProvider: "claude",
+    preferredProvider: "openrouter",
+    preferredModel: "openai/gpt-4o",
+    fallbackProvider: "ollama",
     temperature: 0.3,
-    maxOutputTokens: 4096,
+    maxOutputTokens: 3500,
     reasoningEffort: "high",
     chainOfThought: true,
     systemPromptExtra:
-      "You are an executive strategist. Analyze decisions, reveal trade-offs, and recommend direction. Be honest about uncertainty. Challenge assumptions. Every recommendation must consider alternatives.",
+      `You are an Executive Strategy Partner.
+
+Your purpose is to analyze decisions, reveal trade-offs, and recommend direction.
+
+Rules:
+- Challenge assumptions — yours and theirs.
+- Compare options before recommending.
+- Explain trade-offs transparently.
+- Recommend only after reasoning through alternatives.
+- Never produce reports unless explicitly requested.
+- Think out loud, but concisely.`,
   },
   navigation: {
-    preferredProvider: "openai",
-    preferredModel: "gpt-5",
-    fallbackProvider: "claude",
+    preferredProvider: "openrouter",
+    preferredModel: "openai/gpt-4o",
+    fallbackProvider: "ollama",
     temperature: 0.4,
-    maxOutputTokens: 4096,
+    maxOutputTokens: 3500,
     reasoningEffort: "high",
     systemPromptExtra:
-      "You are a future planner. Map journeys from current reality to desired reality. Think in trajectories, transformations, and milestones. Identify obstacles and enablers. Always consider multiple paths.",
+      `You are a Mission Architect.
+
+Your purpose is to map journeys from current reality to desired reality.
+
+Rules:
+- Think in milestones, not tasks.
+- Identify dependencies between every step.
+- Surface risks before they become problems.
+- Always consider multiple paths.
+- Every journey has alternatives — show them.
+- Focus on trajectories, transformations, and decision points.`,
   },
   command: {
-    preferredProvider: "openai",
-    preferredModel: "gpt-5",
-    fallbackProvider: "mock",
+    preferredProvider: "openrouter",
+    preferredModel: "openai/gpt-4o",
+    fallbackProvider: "ollama",
     temperature: 0.2,
     maxOutputTokens: 2048,
     reasoningEffort: "low",
     systemPromptExtra:
-      "You are mission control. Route requests to the appropriate agent. Coordinate work and track progress. Keep responses concise and actionable. Delegate deep analysis to specialized agents.",
+      `You are a Chief of Staff.
+
+Your purpose is to coordinate, remember, connect projects, and maintain continuity.
+
+Rules:
+- Coordinate across agents and projects.
+- Remember context across the entire conversation.
+- Connect related work — you see the full picture.
+- Maintain continuity between sessions.
+- Keep responses concise and actionable.
+- Delegate deep analysis to specialized agents.`,
   },
 };
 
-// ─── Available Providers ─────────────────────────────────────────────────
+// ─── Available Models by Provider ───────────────────────────────────────
 
 const OPENAI_MODELS: ModelConfig[] = [
   { id: "gpt-5", label: "GPT-5", temperature: 0.4, maxOutputTokens: 8192, supportsReasoning: true, reasoningEffort: "high" },
@@ -144,8 +229,8 @@ const GEMINI_MODELS: ModelConfig[] = [
 ];
 
 const DEEPSEEK_MODELS: ModelConfig[] = [
-  { id: "deepseek-v3", label: "DeepSeek V3", temperature: 0.4, maxOutputTokens: 4096 },
-  { id: "deepseek-r1", label: "DeepSeek R1", temperature: 0.4, maxOutputTokens: 4096 },
+  { id: "deepseek-chat", label: "DeepSeek Chat (V3)", temperature: 0.7, maxOutputTokens: 8192 },
+  { id: "deepseek-reasoner", label: "DeepSeek Reasoner (R1)", temperature: 0.5, maxOutputTokens: 4096 },
 ];
 
 const LLAMA_MODELS: ModelConfig[] = [
@@ -161,14 +246,39 @@ const MOCK_MODELS: ModelConfig[] = [
  * Get all available providers.
  * Checks for API keys and returns availability status.
  */
+/**
+ * Get all available providers.
+ * Checks for API keys and returns availability status.
+ * Priority: OpenRouter → AIMLAPI → Ollama → OpenAI → Claude → Gemini → DeepSeek → Mock
+ */
 export function getAvailableProviders(): ProviderConfig[] {
+  const hasOpenRouter = !!process.env.OPENROUTER_API_KEY;
+  const hasAIMLAPI = !!process.env.AIMLAPI_API_KEY;
   const hasOpenAI = !!process.env.OPENAI_API_KEY;
   const hasAnthropic = !!process.env.ANTHROPIC_API_KEY;
   const hasGemini = !!process.env.GEMINI_API_KEY;
   const hasDeepSeek = !!process.env.DEEPSEEK_API_KEY;
-  const hasLlama = false; // Local LLM detection not implemented yet
+  const hasLlama = false; // Future: Local LLM detection
 
   return [
+    {
+      type: "openrouter",
+      label: "OpenRouter (Live)",
+      available: hasOpenRouter,
+      models: OPENROUTER_MODELS,
+    },
+    {
+      type: "aimlapi",
+      label: "AIMLAPI (Unified)",
+      available: hasAIMLAPI,
+      models: AIMLAPI_MODELS,
+    },
+    {
+      type: "ollama",
+      label: "Ollama (Local)",
+      available: true,
+      models: OLLAMA_MODELS,
+    },
     {
       type: "openai",
       label: "OpenAI",

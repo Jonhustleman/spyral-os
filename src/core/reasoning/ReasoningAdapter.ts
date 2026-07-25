@@ -23,7 +23,7 @@ export interface ReasoningAdapter {
 
   /**
    * Send a ReasoningPackage to the model and get a ReasoningResult back.
-   * This is the ONLY method adapters need to implement.
+   * This is the primary method adapters need to implement.
    *
    * @param pkg - The complete ReasoningPackage (WorkingMind + memory + context)
    * @param profile - Model profile (temperature, tokens, reasoning effort, etc.)
@@ -39,6 +39,26 @@ export interface ReasoningAdapter {
       abortSignal?: AbortSignal;
     },
   ): Promise<ReasoningResult>;
+
+  /**
+   * Stream a ReasoningPackage to the model, yielding content chunks as they arrive.
+   * Returns an AsyncGenerator that yields partial content strings and returns the
+   * complete ReasoningResult when the stream is done.
+   *
+   * @param pkg - The complete ReasoningPackage
+   * @param profile - Model profile
+   * @param options - Optional overrides including abortSignal
+   */
+  streamReason?(
+    pkg: ReasoningPackage,
+    profile: ModelProfile,
+    options?: {
+      model?: string;
+      maxTokens?: number;
+      temperature?: number;
+      abortSignal?: AbortSignal;
+    },
+  ): AsyncGenerator<string, ReasoningResult, void>;
 
   /**
    * Get the list of available models for this provider.

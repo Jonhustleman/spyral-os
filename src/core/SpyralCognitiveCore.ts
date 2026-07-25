@@ -28,7 +28,7 @@ import {
   CommandCenterComposer,
 } from "@/features/composers";
 import { buildWorkingMind, buildReasoningPackage, serializeReasoningPackage } from "@/core/mind";
-import { initReasoningSystem, routeReasoning } from "@/core/reasoning";
+import { initReasoningSystem, routeReasoning, routeReasoningStream } from "@/core/reasoning";
 import type { ReasoningResult } from "@/core/reasoning";
 import type { ReasoningPackage } from "@/core/mind";
 
@@ -256,10 +256,22 @@ class SpyralCognitiveCoreImpl {
     // ─── STEP 2: ROUTE TO LLM ─────────────────────────────────────────
     // Send the ReasoningPackage to the best available model.
     // This is where actual intelligence comes from — not from TypeScript rules.
+
+    if (process.env.NODE_ENV === "development" || process.env.DEV_MODE === "true") {
+      console.log(`[SpyralCognitiveCore] WorkingMind Built`);
+      console.log(`[SpyralCognitiveCore] ReasoningPackage Built`);
+      console.log(`[SpyralCognitiveCore] HTTP Request → LLM`);
+    }
+
     const reasoningResult = await routeReasoning(
       reasoningPackage,
       input.agentType,
     );
+
+    if (process.env.NODE_ENV === "development" || process.env.DEV_MODE === "true") {
+      console.log(`[SpyralCognitiveCore] Response Received — Provider: ${reasoningResult.provider}, Model: ${reasoningResult.model}`);
+      console.log(`[SpyralCognitiveCore] Memory Updated`);
+    }
 
     // ─── STEP 3: UPDATE MEMORY ─────────────────────────────────────────
     // After receiving the LLM's response, store what we can learn from it.
@@ -296,6 +308,174 @@ class SpyralCognitiveCoreImpl {
       response,
       reasoningPackage,
       reasoningResult,
+      conversation: { ...SpyralCognitiveCoreImpl._conversation },
+    };
+  }
+
+  // ─── STREAMING (RC8) ────────────────────────────────────────────────────
+
+  /**
+   * thinkStream() — Stream a response from the LLM.
+   *
+   * Same flow as think(), but yields content chunks as they arrive from the
+   * model instead of waiting for the complete response.
+   *
+   * The onChunk callback is called with each partial content string as it
+   * is received from the LLM. The method returns the complete CognitiveResponse
+   * when the stream is done.
+   *
+   * Flow:
+   *   1. Build WorkingMind + ReasoningPackage (same as think())
+   *   2. Route to LLM via routeReasoningStream (streaming)
+   *   3. For each chunk: call onChunk(chunk)
+   *   4. After stream completes: update memory, format response
+   *   5. Return CognitiveResponse
+   */
+  async thinkStream(
+    input: ThinkInput,
+    onChunk: (chunk: string) => void,
+  ): Promise<CognitiveResponse> {
+    SpyralCognitiveCoreImpl._thinkCount++;
+
+    // ─── GENOME BOOT ─────────────────────────────────────────────────
+    SpyralCognitiveCoreImpl.ensureGenomeBooted();
+    SpyralCognitiveCoreImpl._genomeContext = GenomeBootloader.prepareForThinking(input.agentType);
+
+    // ─── INIT REASONING SYSTEM ──────────────────────────────────────
+    SpyralCognitiveCoreImpl.ensureReasoningInitialized();
+
+    // ─── RECORD START ───────────────────────────────────────────────
+    const startTime = Date.now();
+    ExperienceRecorder.recordEvent("thinking_started", {
+      agentType: input.agentType,
+      page: input.agentType,
+      metadata: {
+        inputLength: input.input.length,
+        genomeVersion: GenomeBootloader.getVersion(),
+      },
+    });
+
+    // ─── STEP 1: BUILD WORKING MIND ─────────────────────────────────
+    let reasoningPackage: ReasoningPackage;
+    try {
+      const mind = await buildWorkingMind(input.input, input.agentType, {
+        sharedContextStore: SharedContextStore as any,
+        learningStore: LearningStore as any,
+        currentInvestigation: input.conversation?.currentInvestigation ?? SpyralCognitiveCoreImpl._conversation.currentInvestigation,
+        currentMission: input.conversation?.currentProject ?? SpyralCognitiveCoreImpl._conversation.currentProject,
+      });
+
+      const history = input.conversationHistory ?? [];
+
+      const kgEntities: string[] = [];
+      const kgRelationships: { source: string; target: string; type: string }[] = [];
+
+      const memories = SharedContextStore.getMemories();
+      for (const mem of memories.slice(0, 5)) {
+        kgEntities.push(mem.title);
+      }
+
+      const patterns = LearningStore.getPatterns();
+      const patternDescriptions = patterns.map(p => p.title);
+
+      reasoningPackage = buildReasoningPackage(mind, {
+        conversationHistory: history,
+        knowledgeGraph: {
+          entities: kgEntities,
+          relationships: kgRelationships,
+        },
+        patterns: patternDescriptions,
+        userPreferences: [...mind.activeMemory.preferences],
+      });
+    } catch (err) {
+      console.warn("[RC7] WorkingMind build failed, using minimal context:", err);
+
+      const fallbackMind = await buildWorkingMind(input.input, input.agentType, {});
+      reasoningPackage = buildReasoningPackage(fallbackMind, {
+        conversationHistory: input.conversationHistory ?? [],
+      });
+    }
+
+    // ─── STEP 2: ROUTE TO LLM (STREAMING) ───────────────────────────
+    if (process.env.NODE_ENV === "development" || process.env.DEV_MODE === "true") {
+      console.log(`[SpyralCognitiveCore] Streaming — WorkingMind Built`);
+      console.log(`[SpyralCognitiveCore] Streaming — ReasoningPackage Built`);
+      console.log(`[SpyralCognitiveCore] Streaming — HTTP Request → LLM`);
+    }
+
+    const streamGen = routeReasoningStream(
+      reasoningPackage,
+      input.agentType,
+    );
+
+    // Collect all chunks and call onChunk for each
+    let fullContent = "";
+    let finalResult: ReasoningResult;
+    let streamResult: IteratorResult<string, ReasoningResult>;
+
+    try {
+      while (true) {
+        streamResult = await streamGen.next();
+        if (streamResult.done) {
+          // The return value of the generator is the final ReasoningResult
+          finalResult = streamResult.value;
+          break;
+        }
+        fullContent += streamResult.value;
+        onChunk(streamResult.value);
+      }
+    } catch (err) {
+      console.error("[SpyralCognitiveCore] Stream error:", err);
+      finalResult = {
+        content: fullContent,
+        model: "unknown",
+        provider: "unknown",
+        usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+        cached: false,
+        error: {
+          code: "STREAM_ERROR",
+          message: err instanceof Error ? err.message : "Streaming failed",
+          recoverable: true,
+        },
+      };
+    }
+
+    if (process.env.NODE_ENV === "development" || process.env.DEV_MODE === "true") {
+      console.log(`[SpyralCognitiveCore] Stream Complete — Provider: ${finalResult.provider}, Model: ${finalResult.model}`);
+    }
+
+    // ─── STEP 3: UPDATE MEMORY ─────────────────────────────────────────
+    this.updateMemory(input, reasoningPackage, finalResult);
+
+    // ─── STEP 4: FORMAT RESPONSE ───────────────────────────────────────
+    const response = this.formatResponse(input, reasoningPackage, finalResult);
+
+    // ─── STEP 5: UPDATE CONVERSATION CONTEXT ──────────────────────────
+    this.updateConversation(input);
+
+    // ─── RECORD COMPLETION ────────────────────────────────────────────
+    ExperienceRecorder.recordEvent("thinking_completed", {
+      agentType: input.agentType,
+      page: input.agentType,
+      duration: Date.now() - startTime,
+      metadata: {
+        thinkCount: SpyralCognitiveCoreImpl._thinkCount,
+        model: finalResult.model,
+        provider: finalResult.provider,
+        tokens: finalResult.usage.totalTokens,
+      },
+    });
+
+    // ─── CLEAR GENOME CONTEXT ─────────────────────────────────────────
+    SpyralCognitiveCoreImpl._genomeContext = null;
+
+    return {
+      input: input.input,
+      agentType: input.agentType,
+      researchMode: input.researchMode,
+      response,
+      reasoningPackage,
+      reasoningResult: finalResult,
       conversation: { ...SpyralCognitiveCoreImpl._conversation },
     };
   }
@@ -438,33 +618,8 @@ class SpyralCognitiveCoreImpl {
     pkg: ReasoningPackage,
     result: ReasoningResult,
   ): string {
-    const error = result.error!;
-
-    if (error.code === "PROVIDER_UNAVAILABLE" || error.code === "API_KEY_MISSING") {
-      return [
-        `I'm running in development mode — no LLM is connected yet.`,
-        ``,
-        `I received your input: "${input.input}"`,
-        ``,
-        `To enable real reasoning, add an API key to your \`.env.local\` file:`,
-        `- \`OPENAI_API_KEY\` — for GPT-5 / GPT-4.1 / GPT-4o`,
-        `- \`ANTHROPIC_API_KEY\` — for Claude 4 / Claude 3.5 Sonnet`,
-        `- \`GEMINI_API_KEY\` — for Gemini 2.5 Pro / 2.0 Flash`,
-        `- \`DEEPSEEK_API_KEY\` — for DeepSeek V3 / R1`,
-        ``,
-        `Then restart the development server. SPYRAL will automatically route to the best available model.`,
-        ``,
-        `_Cognitive Core — RC7 — No LLM Connected_`,
-      ].join("\n");
-    }
-
-    // Recoverable error — suggest retry
-    return [
-      `I encountered an issue while reasoning: ${error.message}`,
-      ``,
-      `This was a ${error.recoverable ? "temporary" : "permanent"} error.`,
-      error.recoverable ? "Please try again." : "You may need to check your configuration.",
-    ].join("\n");
+    // User-friendly error — NO developer output, NO setup instructions, NO internal details
+    return "I'm having trouble reaching my reasoning service right now. Please try again in a moment.";
   }
 
   // ─── UTILITY ─────────────────────────────────────────────────────────

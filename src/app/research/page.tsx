@@ -2,10 +2,12 @@
 
 import { useState, useRef, useEffect } from "react";
 import { ThinkingIndicator } from "@/components/ThinkingIndicator";
+import { DeveloperOverlay } from "@/components/dev/DeveloperOverlay";
 import Link from "next/link";
-import { Send, Home } from "lucide-react";
+import { Send, Home, Bug } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SpyralCognitiveCore } from "@/core";
+import type { CognitiveResponse } from "@/core";
 
 // ─── Message types ─────────────────────────────────────────────────────────
 
@@ -29,6 +31,17 @@ export default function ResearchAgentPage() {
     },
   ]);
   const [isThinking, setIsThinking] = useState(false);
+  const [lastResponse, setLastResponse] = useState<CognitiveResponse | null>(null);
+  const [devModeEnabled, setDevModeEnabled] = useState(() => {
+    if (typeof window !== "undefined") {
+      try {
+        return localStorage.getItem("spyral_dev_mode") === "true";
+      } catch {
+        return false;
+      }
+    }
+    return false;
+  });
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -48,20 +61,47 @@ export default function ResearchAgentPage() {
     setMessages((prev) => [...prev, userMsg]);
     setIsThinking(true);
 
-    const cognitiveResponse = await SpyralCognitiveCore.think({
-      input: prompt,
-      agentType: "research",
-      researchMode: "discovery",
-    });
-
+    // Create a placeholder agent message — content will stream in
+    const agentId = `agent-${Date.now()}`;
     const agentMsg: Message = {
-      id: `agent-${Date.now()}`,
+      id: agentId,
       role: "agent",
-      content: cognitiveResponse.response,
+      content: "",
       timestamp: new Date(),
     };
-
     setMessages((prev) => [...prev, agentMsg]);
+
+    // Stream the response
+    const cognitiveResponse = await SpyralCognitiveCore.thinkStream(
+      {
+        input: prompt,
+        agentType: "research",
+        researchMode: "discovery",
+      },
+      (chunk) => {
+        // Append each chunk to the agent message
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === agentId
+              ? { ...msg, content: msg.content + chunk }
+              : msg,
+          ),
+        );
+      },
+    );
+
+    // Save for Developer Overlay
+    setLastResponse(cognitiveResponse);
+
+    // Finalize with the formatted response from the composer
+    setMessages((prev) =>
+      prev.map((msg) =>
+        msg.id === agentId
+          ? { ...msg, content: cognitiveResponse.response }
+          : msg,
+      ),
+    );
+
     setIsThinking(false);
     setPrompt("");
   };
@@ -85,15 +125,41 @@ export default function ResearchAgentPage() {
               <p className="text-xs text-zinc-500">Curiosity — not answers</p>
             </div>
           </div>
-          <Link
-            href="/"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-800 bg-zinc-900/40 text-zinc-400 hover:text-white hover:bg-zinc-800/60 hover:border-zinc-700 transition-all text-sm"
-          >
-            <Home className="h-4 w-4" />
-            Home
-          </Link>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                const next = !devModeEnabled;
+                setDevModeEnabled(next);
+                try {
+                  localStorage.setItem("spyral_dev_mode", next ? "true" : "false");
+                } catch {
+                  // localStorage unavailable
+                }
+              }}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1.5 rounded-lg border transition-all text-sm",
+                devModeEnabled
+                  ? "border-green-700 bg-green-900/40 text-green-400 hover:bg-green-900/60"
+                  : "border-zinc-800 bg-zinc-900/40 text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/60",
+              )}
+              title="Toggle Developer Mode"
+            >
+              <Bug className="h-4 w-4" />
+              <span className="hidden sm:inline">Dev</span>
+            </button>
+            <Link
+              href="/"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-800 bg-zinc-900/40 text-zinc-400 hover:text-white hover:bg-zinc-800/60 hover:border-zinc-700 transition-all text-sm"
+            >
+              <Home className="h-4 w-4" />
+              Home
+            </Link>
+          </div>
         </div>
       </div>
+
+      {/* Developer Overlay */}
+      <DeveloperOverlay lastResponse={lastResponse} enabled={devModeEnabled} />
 
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
