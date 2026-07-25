@@ -279,7 +279,7 @@ export function getAvailableProviders(): ProviderConfig[] {
     {
       type: "ollama",
       label: "Ollama (Local)",
-      available: true,
+      available: hasLlama,
       models: OLLAMA_MODELS,
     },
     {
@@ -293,12 +293,6 @@ export function getAvailableProviders(): ProviderConfig[] {
       label: "Anthropic Claude",
       available: hasAnthropic,
       models: CLAUDE_MODELS,
-    },
-    {
-      type: "gemini",
-      label: "Google Gemini",
-      available: hasGemini,
-      models: GEMINI_MODELS,
     },
     {
       type: "deepseek",

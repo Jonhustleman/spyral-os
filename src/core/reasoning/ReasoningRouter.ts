@@ -124,7 +124,7 @@ export async function* routeReasoningStream(
 
         // Check if the result has an error that another provider might not have — try next provider
         if (finalResult.error) {
-          const retryCodes = ["AUTHENTICATION_ERROR", "API_KEY_MISSING", "INVALID_REQUEST", "API_ERROR_400", "API_ERROR_402", "QUOTA_EXCEEDED"];
+          const retryCodes = ["AUTHENTICATION_ERROR", "API_KEY_MISSING", "INVALID_REQUEST", "API_ERROR_400", "API_ERROR_402", "API_ERROR_403", "QUOTA_EXCEEDED"];
           if (retryCodes.includes(finalResult.error.code)) {
             lastError = finalResult;
             if (process.env.NODE_ENV === "development" || process.env.DEV_MODE === "true") {
@@ -162,7 +162,7 @@ export async function* routeReasoningStream(
 
       // Check for errors that another provider might not have — try next provider
       if (result.error) {
-        const retryCodes = ["AUTHENTICATION_ERROR", "API_KEY_MISSING", "INVALID_REQUEST", "API_ERROR_400", "API_ERROR_402", "QUOTA_EXCEEDED"];
+        const retryCodes = ["AUTHENTICATION_ERROR", "API_KEY_MISSING", "INVALID_REQUEST", "API_ERROR_400", "API_ERROR_402", "API_ERROR_403", "QUOTA_EXCEEDED"];
         if (retryCodes.includes(result.error.code)) {
           lastError = result;
           if (process.env.NODE_ENV === "development" || process.env.DEV_MODE === "true") {

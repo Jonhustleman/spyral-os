@@ -1,0 +1,2 @@
+data: {"type":"complete","response":{"gateway":"working-mind-v1","input":"hello","agentType":"command","mode":"command","response":"fetch failed","reasoningResult":{"provider":"ollama","model":"llama3.2:3b","usage":{"inputTokens":0,"outputTokens":0,"totalTokens":0},"reasoning":{"durationMs":203},"cached":false,"error":{"code":"NETWORK_ERROR","message":"fetch failed","recoverable":true}},"conversation":{"currentInvestigation":"hello","currentAssumptions":[],"currentHypotheses":[],"recentTopics":["hello"],"turnCount":1}}}
+
