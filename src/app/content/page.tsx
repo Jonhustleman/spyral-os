@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { SpyralCognitiveCore } from "@/core";
+import { WorkingMind } from "@/lib/working-mind";
 import { Send, Home } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThinkingIndicator } from "@/components/ThinkingIndicator";
@@ -48,19 +48,25 @@ export default function ContentAgentPage() {
     setMessages((prev) => [...prev, userMsg]);
     setIsThinking(true);
 
-    const cognitive = await SpyralCognitiveCore.think({
-      input: prompt,
-      agentType: "content",
-    });
+    try {
+      const result = await WorkingMind.run(prompt, "content");
+      const agentMsg: Message = {
+        id: `agent-${Date.now()}`,
+        role: "agent",
+        content: result.response,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, agentMsg]);
+    } catch (err) {
+      const agentMsg: Message = {
+        id: `agent-${Date.now()}`,
+        role: "agent",
+        content: `Error: ${err instanceof Error ? err.message : "Reasoning failed"}`,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, agentMsg]);
+    }
 
-    const agentMsg: Message = {
-      id: `agent-${Date.now()}`,
-      role: "agent",
-      content: cognitive.response,
-      timestamp: new Date(),
-    };
-
-    setMessages((prev) => [...prev, agentMsg]);
     setIsThinking(false);
     setPrompt("");
   };

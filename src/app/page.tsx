@@ -20,7 +20,7 @@ import LandingPage from "./landing-page";
 const AGENT_CARDS = [
   {
     icon: BookOpen,
-    title: "Research",
+    title: "Discovery Lab",
     subtitle: "Explore ideas and understand what's really going on.",
     href: "/research",
     gradient: "from-blue-600/20 via-blue-500/5 to-transparent",
@@ -29,7 +29,7 @@ const AGENT_CARDS = [
   },
   {
     icon: Sparkles,
-    title: "Content",
+    title: "Content Studio",
     subtitle: "Create campaigns, content and creative assets.",
     href: "/content",
     gradient: "from-purple-600/20 via-purple-500/5 to-transparent",
@@ -38,7 +38,7 @@ const AGENT_CARDS = [
   },
   {
     icon: Compass,
-    title: "Navigation",
+    title: "Navigator",
     subtitle: "Figure out where you are and how to get where you want to be.",
     href: "/navigate",
     gradient: "from-amber-600/20 via-amber-500/5 to-transparent",
@@ -47,7 +47,7 @@ const AGENT_CARDS = [
   },
   {
     icon: Briefcase,
-    title: "Consultant",
+    title: "Strategy",
     subtitle: "Solve complex business and life problems.",
     href: "/consultant",
     gradient: "from-emerald-600/20 via-emerald-500/5 to-transparent",
@@ -56,7 +56,7 @@ const AGENT_CARDS = [
   },
   {
     icon: LayoutDashboard,
-    title: "Command Center",
+    title: "Mission Control",
     subtitle: "Control every SPYRAL capability.",
     href: "/command",
     gradient: "from-zinc-600/20 via-zinc-500/5 to-transparent",

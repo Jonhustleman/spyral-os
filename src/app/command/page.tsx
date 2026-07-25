@@ -14,7 +14,7 @@ import {
   BookOpen, Compass, Briefcase, LayoutDashboard,
   Lightbulb, Target, CheckCircle, AlertTriangle, Eye
 } from "lucide-react";
-import { SpyralCognitiveCore } from "@/core";
+import { WorkingMind } from "@/lib/working-mind";
 import { cn } from "@/lib/utils";
 
 const EXAMPLE_COMMANDS = [
@@ -52,11 +52,8 @@ export default function CommandCenterPage() {
   const handleCommand = () => {
     if (!command.trim()) return;
 
-    // Understand intent via Cognitive Core (fire-and-forget)
-    SpyralCognitiveCore.think({
-      input: command,
-      agentType: "command",
-    }).catch(() => {});
+    // Understand intent via WorkingMind (fire-and-forget)
+    WorkingMind.run(command, "command").catch(() => {});
 
     const cmd = command.toLowerCase();
     if (cmd.includes("research") || cmd.includes("investigate") || cmd.includes("analyze")) {

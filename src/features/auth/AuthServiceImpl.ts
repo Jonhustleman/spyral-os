@@ -126,10 +126,6 @@ class ApiAuthServiceImpl implements AuthService {
 
   async logout(): Promise<AuthResult> {
     const token = this.getCachedToken();
-    // Keep the token in localStorage so it can be used for token-assisted
-    // login recovery when the server store is unavailable (Vercel serverless).
-    // The AuthStore clears its in-memory state — the token is preserved
-    // for re-authentication only. It expires naturally after 30 days.
 
     if (token) {
       // Fire-and-forget: tell server to invalidate (best-effort)
@@ -138,6 +134,13 @@ class ApiAuthServiceImpl implements AuthService {
         body: JSON.stringify({ token }),
       }).catch(() => {});
     }
+
+    // Clear the token so the user is truly signed out.
+    // The token can still be recovered during the next explicit login
+    // via the token-assisted recovery flow if the store is empty —
+    // the client re-sends whatever token it finds during login, not
+    // during session restoration.
+    this.clearToken();
 
     return { success: true };
   }

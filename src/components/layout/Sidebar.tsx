@@ -13,11 +13,11 @@ import { LogOut, User } from "lucide-react";
 
 const NAV_ITEMS = [
   { label: "Home", href: "/", icon: "🏠" },
-  { label: "Content Agent", href: "/content", icon: "✨" },
-  { label: "Research Agent", href: "/research", icon: "🔬" },
-  { label: "Navigation Agent", href: "/navigate", icon: "🧭" },
-  { label: "Consultant Agent", href: "/consultant", icon: "💼" },
-  { label: "Command Center", href: "/command", icon: "📊" },
+  { label: "Content Studio", href: "/content", icon: "✨" },
+  { label: "Discovery Lab", href: "/research", icon: "🔬" },
+  { label: "Navigator", href: "/navigate", icon: "🧭" },
+  { label: "Strategy", href: "/consultant", icon: "💼" },
+  { label: "Mission Control", href: "/command", icon: "📊" },
   { label: "Intelligence", href: "/intelligence", icon: "🧠" },
   { label: "Memory", href: "/memory", icon: "💾" },
   { label: "Learning", href: "/learning", icon: "📚" },

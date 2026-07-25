@@ -8,10 +8,10 @@ import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
   { label: "Home", href: "/", icon: "🏠" },
-  { label: "Content", href: "/content", icon: "✨" },
-  { label: "Research", href: "/research", icon: "🔬" },
-  { label: "Navigate", href: "/navigate", icon: "🧭" },
-  { label: "Consultant", href: "/consultant", icon: "💼" },
+  { label: "Studio", href: "/content", icon: "✨" },
+  { label: "Lab", href: "/research", icon: "🔬" },
+  { label: "Navigator", href: "/navigate", icon: "🧭" },
+  { label: "Strategy", href: "/consultant", icon: "💼" },
 ];
 
 export function BottomNav() {

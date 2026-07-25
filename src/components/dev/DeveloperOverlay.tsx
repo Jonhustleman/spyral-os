@@ -13,7 +13,7 @@ import { useState, useEffect } from "react";
 import { Bug, X, Clock, Cpu, Database, Brain, BarChart } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// Overlay data type matching the API response
+// Overlay data type matching the WorkingMind API response
 interface OverlayData {
   reasoningResult?: {
     provider: string;
@@ -21,10 +21,11 @@ interface OverlayData {
     usage: { inputTokens: number; outputTokens: number; totalTokens: number };
     reasoning?: { durationMs: number };
     cached: boolean;
-    error?: { code: string; message: string; recoverable?: boolean };
+    error?: string | { code: string; message: string; recoverable?: boolean };
   };
   response: string;
   agentType: string;
+  mode?: string;
 }
 
 interface DeveloperOverlayProps {
@@ -168,7 +169,7 @@ export function DeveloperOverlay({ lastResponse, enabled: enabledProp }: Develop
                 Error
               </p>
               <p className="text-xs text-red-400 mt-1">
-                ⚠ {reasoningResult.error.code}: {reasoningResult.error.message}
+                ⚠ {typeof reasoningResult.error === "string" ? reasoningResult.error : `${reasoningResult.error.code}: ${reasoningResult.error.message}`}
               </p>
             </div>
           )}
