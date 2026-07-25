@@ -108,7 +108,7 @@ const OPENROUTER_MODELS: ModelConfig[] = [
 export const AGENT_PROFILES: Record<AgentType, ModelProfile> = {
   research: {
     preferredProvider: "gemini",
-    preferredModel: "gemini-2.5-flash",
+    preferredModel: "gemini-2.0-flash",
     fallbackProvider: "openrouter",
     temperature: 0.4,
     maxOutputTokens: 1000,
@@ -129,7 +129,7 @@ Rules:
   },
   content: {
     preferredProvider: "gemini",
-    preferredModel: "gemini-2.5-flash",
+    preferredModel: "gemini-2.0-flash",
     fallbackProvider: "openrouter",
     temperature: 0.8,
     maxOutputTokens: 1000,
@@ -149,7 +149,7 @@ Rules:
   },
   consultant: {
     preferredProvider: "gemini",
-    preferredModel: "gemini-2.5-flash",
+    preferredModel: "gemini-2.0-flash",
     fallbackProvider: "openrouter",
     temperature: 0.3,
     maxOutputTokens: 1000,
@@ -170,7 +170,7 @@ Rules:
   },
   navigation: {
     preferredProvider: "gemini",
-    preferredModel: "gemini-2.5-flash",
+    preferredModel: "gemini-2.0-flash",
     fallbackProvider: "openrouter",
     temperature: 0.4,
     maxOutputTokens: 1000,
@@ -190,7 +190,7 @@ Rules:
   },
   command: {
     preferredProvider: "gemini",
-    preferredModel: "gemini-2.5-flash",
+    preferredModel: "gemini-2.0-flash",
     fallbackProvider: "openrouter",
     temperature: 0.2,
     maxOutputTokens: 1000,
@@ -224,9 +224,8 @@ const CLAUDE_MODELS: ModelConfig[] = [
 ];
 
 const GEMINI_MODELS: ModelConfig[] = [
-  { id: "gemini-2.5-pro", label: "Gemini 2.5 Pro", temperature: 0.4, maxOutputTokens: 8192 },
-  { id: "gemini-2.5-flash", label: "Gemini 2.5 Flash", temperature: 0.5, maxOutputTokens: 4096 },
   { id: "gemini-2.0-flash", label: "Gemini 2.0 Flash", temperature: 0.4, maxOutputTokens: 4096 },
+  { id: "gemini-2.5-pro", label: "Gemini 2.5 Pro", temperature: 0.4, maxOutputTokens: 8192 },
 ];
 
 const DEEPSEEK_MODELS: ModelConfig[] = [
