@@ -613,6 +613,7 @@ class SpyralCognitiveCoreImpl {
   /**
    * Format an error from the reasoning system.
    * Uses the error code from the adapter to provide a classified message.
+   * Passes through the actual API error message when available.
    * Never displays internal diagnostics or setup instructions.
    */
   private formatError(
@@ -621,6 +622,12 @@ class SpyralCognitiveCoreImpl {
     result: ReasoningResult,
   ): string {
     const code = result.error?.code ?? "UNKNOWN_ERROR";
+    const apiMessage = result.error?.message;
+
+    // If we have a specific API error message, use it (it's already classified by the adapter)
+    if (apiMessage && !apiMessage.startsWith("Unknown") && !apiMessage.startsWith("Failed")) {
+      return apiMessage;
+    }
 
     // Map error codes to user-friendly messages
     switch (code) {

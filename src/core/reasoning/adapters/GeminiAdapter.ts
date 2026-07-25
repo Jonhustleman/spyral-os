@@ -339,13 +339,24 @@ export class GeminiAdapter implements ReasoningAdapter {
       cached: false,
     };
 
+    // Try to extract a meaningful message from the response body
+    let apiMessage = body;
+    try {
+      const parsed = JSON.parse(body);
+      if (parsed.error?.message) {
+        apiMessage = parsed.error.message;
+      }
+    } catch {
+      // Use raw body
+    }
+
     switch (status) {
       case 400:
         return {
           ...base,
           error: {
             code: "INVALID_REQUEST",
-            message: "The request was invalid. Please try rephrasing your input.",
+            message: apiMessage,
             recoverable: true,
           },
         };
@@ -355,7 +366,7 @@ export class GeminiAdapter implements ReasoningAdapter {
           ...base,
           error: {
             code: "AUTHENTICATION_ERROR",
-            message: "Authentication failed. Please check your API key configuration.",
+            message: apiMessage,
             recoverable: false,
           },
         };
@@ -373,7 +384,7 @@ export class GeminiAdapter implements ReasoningAdapter {
           ...base,
           error: {
             code: "QUOTA_EXCEEDED",
-            message: "API quota exceeded. Please check your billing settings.",
+            message: apiMessage,
             recoverable: true,
           },
         };
@@ -384,7 +395,7 @@ export class GeminiAdapter implements ReasoningAdapter {
           ...base,
           error: {
             code: "PROVIDER_ERROR",
-            message: "The AI service is temporarily unavailable. Please try again in a moment.",
+            message: apiMessage,
             recoverable: true,
           },
         };
@@ -393,7 +404,7 @@ export class GeminiAdapter implements ReasoningAdapter {
           ...base,
           error: {
             code: `API_ERROR_${status}`,
-            message: `Unexpected error (${status}). Please try again.`,
+            message: apiMessage,
             recoverable: status >= 500,
           },
         };
